@@ -17,158 +17,105 @@ export interface VideoFile extends UploadedFile {
 export type UploadState = 'initial' | 'uploading' | 'uploaded' | 'error';
 
 interface FileUploadHookReturn {
-  // State
+  loading: boolean;
   uploadState: UploadState;
   uploadedFile: VideoFile | null;
   uploadProgress: number;
   error: string;
-  isLoading: boolean;
-  
-  // Actions
-  setUploadState: (state: UploadState) => Promise<void>;
-  setUploadedFile: (file: VideoFile | null) => Promise<void>;
-  setUploadProgress: (progress: number) => Promise<void>;
-  setError: (error: string) => Promise<void>;
-  resetUpload: () => Promise<void>;
-  
-  // Helpers
+  uploadFile: (file: File) => Promise<void>;
+  reset: () => Promise<void>;
   updateVideoMetadata: (duration?: number, width?: number, height?: number) => Promise<void>;
 }
 
+const initialState = {
+  uploadState: 'initial' as UploadState,
+  uploadedFile: null as VideoFile | null,
+  uploadProgress: 0,
+  error: '',
+};
+
 export const useFileUpload = (): FileUploadHookReturn => {
-  const [uploadState, setUploadStateInternal] = useState<UploadState>('initial');
-  const [uploadedFile, setUploadedFileInternal] = useState<VideoFile | null>(null);
-  const [uploadProgress, setUploadProgressInternal] = useState<number>(0);
-  const [error, setErrorInternal] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [uploadState, setUploadState] = useState<UploadState>(initialState.uploadState);
+  const [uploadedFile, setUploadedFile] = useState<VideoFile | null>(initialState.uploadedFile);
+  const [uploadProgress, setUploadProgress] = useState<number>(initialState.uploadProgress);
+  const [error, setError] = useState<string>(initialState.error);
 
-  // Async wrapper for backend sync
-  const syncWithBackend = useCallback(async (action: string, data?: any) => {
-    try {
-      setIsLoading(true);
-      
-      // TODO: Replace with actual backend API call
-      console.log(`Syncing with backend: ${action}`, data);
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Here you would make the actual API call
-      // const response = await fetch('/api/file-upload', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ action, data })
-      // });
-      // 
-      // if (!response.ok) {
-      //   throw new Error('Failed to sync with backend');
-      // }
-      
-      return true;
-    } catch (error) {
-      console.error('Backend sync failed:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  // Simulate backend API
+  const fakeApi = async (data: any, ms = 600) => {
+    await new Promise(res => setTimeout(res, ms));
+    return data;
+  };
 
-  const setUploadState = useCallback(async (state: UploadState) => {
+  const uploadFile = useCallback(async (file: File) => {
+    setLoading(true);
+    setError('');
+    setUploadState('uploading');
+    setUploadProgress(0);
     try {
-      await syncWithBackend('setUploadState', { state });
-      setUploadStateInternal(state);
-    } catch (error) {
-      console.error('Failed to set upload state:', error);
-      throw error;
-    }
-  }, [syncWithBackend]);
-
-  const setUploadedFile = useCallback(async (file: VideoFile | null) => {
-    try {
-      // Don't send the blob URL to backend, just metadata
-      const fileData = file ? {
+      // Simulate backend upload
+      let progress = 0;
+      while (progress < 100) {
+        await fakeApi(null, 80);
+        progress = Math.min(progress + Math.random() * 30 + 10, 100);
+        setUploadProgress(Math.round(progress));
+      }
+      // Simulate backend response with file info
+      const url = URL.createObjectURL(file);
+      const uploaded: VideoFile = {
         name: file.name,
         size: file.size,
         type: file.type,
-        duration: file.duration,
-        width: file.width,
-        height: file.height
-      } : null;
-      
-      await syncWithBackend('setUploadedFile', { file: fileData });
-      setUploadedFileInternal(file);
-    } catch (error) {
-      console.error('Failed to set uploaded file:', error);
-      throw error;
+        url,
+      };
+      await fakeApi(uploaded, 400);
+      setUploadedFile(uploaded);
+      setUploadState('uploaded');
+      setError('');
+    } catch (e) {
+      setError('Upload failed');
+      setUploadState('error');
+    } finally {
+      setLoading(false);
     }
-  }, [syncWithBackend]);
+  }, []);
 
-  const setUploadProgress = useCallback(async (progress: number) => {
+  const reset = useCallback(async () => {
+    setLoading(true);
     try {
-      await syncWithBackend('setUploadProgress', { progress });
-      setUploadProgressInternal(progress);
-    } catch (error) {
-      console.error('Failed to set upload progress:', error);
-      throw error;
+      await fakeApi(null, 300);
+      setUploadState(initialState.uploadState);
+      setUploadedFile(initialState.uploadedFile);
+      setUploadProgress(initialState.uploadProgress);
+      setError(initialState.error);
+    } finally {
+      setLoading(false);
     }
-  }, [syncWithBackend]);
-
-  const setError = useCallback(async (error: string) => {
-    try {
-      await syncWithBackend('setError', { error });
-      setErrorInternal(error);
-    } catch (error) {
-      console.error('Failed to set error:', error);
-      throw error;
-    }
-  }, [syncWithBackend]);
-
-  const resetUpload = useCallback(async () => {
-    try {
-      await syncWithBackend('resetUpload');
-      setUploadStateInternal('initial');
-      setUploadedFileInternal(null);
-      setUploadProgressInternal(0);
-      setErrorInternal('');
-    } catch (error) {
-      console.error('Failed to reset upload:', error);
-      throw error;
-    }
-  }, [syncWithBackend]);
+  }, []);
 
   const updateVideoMetadata = useCallback(async (duration?: number, width?: number, height?: number) => {
+    setLoading(true);
     try {
-      const metadata = { duration, width, height };
-      await syncWithBackend('updateVideoMetadata', metadata);
-      
-      setUploadedFileInternal(prev => prev ? {
+      await fakeApi(null, 200);
+      setUploadedFile(prev => prev ? {
         ...prev,
         ...(duration !== undefined && { duration }),
         ...(width !== undefined && { width }),
         ...(height !== undefined && { height })
       } : null);
-    } catch (error) {
-      console.error('Failed to update video metadata:', error);
-      throw error;
+    } finally {
+      setLoading(false);
     }
-  }, [syncWithBackend]);
+  }, []);
 
   return {
-    // State
+    loading,
     uploadState,
     uploadedFile,
     uploadProgress,
     error,
-    isLoading,
-    
-    // Actions
-    setUploadState,
-    setUploadedFile,
-    setUploadProgress,
-    setError,
-    resetUpload,
-    
-    // Helpers
-    updateVideoMetadata
+    uploadFile,
+    reset,
+    updateVideoMetadata,
   };
 }; 

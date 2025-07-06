@@ -1,14 +1,15 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useRef, useCallback } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
-import { Upload, Loader, AlertCircle, Video, Monitor, HardDrive, Clock } from 'lucide-react';
+import { Upload, Video, Monitor, HardDrive, Clock, AlertCircle, Loader } from 'lucide-react';
 import { StageCard } from './StageCard';
+import { ProgressBar } from './ProgressBar';
 
 export interface UploadedFile {
   name: string;
   size: number;
   type: string;
   url?: string;
-  [key: string]: any; // Allow additional properties
+  [key: string]: any; // Allow additional propertiesm
 }
 
 export interface VideoFile extends UploadedFile {
@@ -24,12 +25,8 @@ export interface FileUploadConfig {
   maxSize?: number; // in bytes
   allowedTypes?: string[];
   maxSizeMB?: number; // convenience prop
-  onFileSelect?: (file: UploadedFile) => void | Promise<void>;
-  onUploadStart?: () => void | Promise<void>;
-  onUploadComplete?: (file: UploadedFile) => void | Promise<void>;
-  onUploadError?: (error: string) => void | Promise<void>;
+  onFileSelect?: (file: File) => void | Promise<void>;
   onReset?: () => void | Promise<void>;
-  onProgressUpdate?: (progress: number) => void | Promise<void>;
   uploadDuration?: number; // milliseconds
   title?: string;
   subtitle?: string;
@@ -44,7 +41,8 @@ export interface FileUploadConfig {
   currentUploadState?: UploadState;
   currentUploadProgress?: number;
   currentError?: string;
-  isLoading?: boolean;
+  loading?: boolean;
+  resetting?: boolean;
 }
 
 interface FileUploadProps extends FileUploadConfig {
@@ -58,19 +56,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   maxSizeMB,
   allowedTypes,
   onFileSelect,
-  onUploadStart,
-  onUploadComplete,
-  onUploadError,
   onReset,
-  onProgressUpdate,
-  uploadDuration = 2000,
   title = "File Upload",
-  subtitle = "Drag and drop or click to select",
   buttonText = "Upload File",
   dragText = "Drag and drop or click to select",
   sizeText,
   showResetButton = true,
-  showProgress = true,
   customValidation,
   className = "",
   children,
@@ -78,212 +69,72 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   currentUploadState,
   currentUploadProgress,
   currentError,
-  isLoading = false
+  loading = false,
+  resetting = false
 }) => {
-  const [uploadState, setUploadState] = useState<UploadState>('initial');
-  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [error, setError] = useState<string>('');
-  const [internalLoading, setInternalLoading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Use external state if provided, otherwise use internal state
-  const actualUploadState = currentUploadState ?? uploadState;
-  const actualUploadProgress = currentUploadProgress ?? uploadProgress;
-  const actualError = currentError ?? error;
-  const actualUploadedFile = videoFile ?? uploadedFile;
-  const actualIsLoading = isLoading || internalLoading;
+  // Use only props for state
+  const actualUploadState = currentUploadState;
+  const actualError = currentError;
+  const actualUploadedFile = videoFile;
+
+  const isVideo = actualUploadedFile?.type?.startsWith('video/') || false;
+  const cardTitle = actualUploadState === 'uploaded' && isVideo ? 'Source Video' : title;
+  const cardIcon = isVideo ? Video : Upload;
+  const resetTitle = isVideo ? 'Change Video' : 'Change File';
 
   const validateFile = useCallback((file: File): string | null => {
-    // Custom validation
     if (customValidation) {
       const customError = customValidation(file);
       if (customError) return customError;
     }
-
-    // Type validation
     if (allowedTypes && !allowedTypes.includes(file.type)) {
       return `File type not supported. Allowed types: ${allowedTypes.join(', ')}`;
     }
-
-    // Size validation
     const maxSizeBytes = maxSize || (maxSizeMB ? maxSizeMB * 1024 * 1024 : undefined);
     if (maxSizeBytes && file.size > maxSizeBytes) {
       const maxSizeMB = Math.round(maxSizeBytes / (1024 * 1024));
       return `File size must be less than ${maxSizeMB}MB`;
     }
-
     return null;
   }, [allowedTypes, maxSize, maxSizeMB, customValidation]);
 
   const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      handleFile(file);
+    if (file && !loading) {
+      const validationError = validateFile(file);
+      if (!validationError) {
+        onFileSelect?.(file);
+      }
     }
-  }, []);
+  }, [onFileSelect, validateFile, loading]);
 
   const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFile(file);
-    }
-  }, []);
-
-  const handleFile = useCallback(async (file: File) => {
-    setError('');
-    setInternalLoading(true);
-    
-    try {
-      // Validate file
+    if (file && !loading) {
       const validationError = validateFile(file);
-      if (validationError) {
-        setError(validationError);
-        setUploadState('error');
-        await onUploadError?.(validationError);
-        return;
+      if (!validationError) {
+        onFileSelect?.(file);
       }
-
-      setUploadState('uploading');
-      setUploadProgress(0);
-      await onUploadStart?.();
-
-      // Create object URL
-      const url = URL.createObjectURL(file);
-
-      // Simulate upload progress
-      const interval = setInterval(async () => {
-        setUploadProgress(prev => {
-          const newProgress = Math.min(prev + Math.random() * 15 + 5, 100);
-          
-          // Update progress asynchronously
-          if (onProgressUpdate) {
-            const result = onProgressUpdate(newProgress);
-            if (result instanceof Promise) {
-              result.catch((error: any) => {
-                console.error('Failed to update progress:', error);
-              });
-            }
-          }
-          
-          if (newProgress >= 100) {
-            clearInterval(interval);
-            
-            const uploadedFileData: UploadedFile = {
-              name: file.name,
-              size: file.size,
-              type: file.type,
-              url
-            };
-            
-            setUploadedFile(uploadedFileData);
-            setUploadState('uploaded');
-            
-            // Call async callbacks
-            Promise.all([
-              onUploadComplete?.(uploadedFileData),
-              onFileSelect?.(uploadedFileData)
-            ]).catch(error => {
-              console.error('Upload completion callbacks failed:', error);
-            });
-            
-            return 100;
-          }
-          
-          return newProgress;
-        });
-      }, uploadDuration / 20); // Divide by 20 to get reasonable progress steps
-    } catch (error) {
-      console.error('File handling failed:', error);
-      setError('Upload failed');
-      setUploadState('error');
-      await onUploadError?.('Upload failed');
-    } finally {
-      setInternalLoading(false);
     }
-  }, [validateFile, onUploadStart, onUploadComplete, onFileSelect, onUploadError, onProgressUpdate, uploadDuration]);
+  }, [onFileSelect, validateFile, loading]);
 
-  const handleReset = useCallback(async () => {
-    setInternalLoading(true);
-    
-    try {
-      setUploadState('initial');
-      setUploadedFile(null);
-      setUploadProgress(0);
-      setError('');
-      
-      if (actualUploadedFile?.url) {
-        URL.revokeObjectURL(actualUploadedFile.url);
-      }
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      
-      await onReset?.();
-    } catch (error) {
-      console.error('Reset failed:', error);
-    } finally {
-      setInternalLoading(false);
-    }
-  }, [actualUploadedFile, onReset]);
 
-  const formatFileSize = useCallback((bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }, []);
-
-  const formatDuration = useCallback((seconds: number | null | undefined) => {
-    if (!seconds) return '--:--';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }, []);
-
-  const getResolutionText = useCallback((width?: number, height?: number) => {
-    if (!width || !height) return '--';
-    
-    // Determine resolution label
-    if (width >= 3840 && height >= 2160) return `${width}×${height} (4K)`;
-    if (width >= 1920 && height >= 1080) return `${width}×${height} (FHD)`;
-    if (width >= 1280 && height >= 720) return `${width}×${height} (HD)`;
-    return `${width}×${height}`;
-  }, []);
-
-  const isVideo = actualUploadedFile?.type?.startsWith('video/') || videoFile;
-
-  // Determine the card title and icon
-  const cardTitle = actualUploadState === 'uploaded' && isVideo ? 'Source Video' : title;
-  const cardIcon = isVideo ? Video : Upload;
-  const resetTitle = isVideo ? 'Change Video' : 'Change File';
 
   return (
     <StageCard
       title={cardTitle}
       icon={cardIcon}
-      showReset={actualUploadState === 'uploaded' && showResetButton && !actualIsLoading}
+      showReset={actualUploadState === 'uploaded' && showResetButton}
       resetTitle={resetTitle}
-      onResetClick={handleReset}
+      onResetClick={onReset}
+      resetting={resetting}
       className={className}
     >
-      {/* Loading Overlay */}
-      {actualIsLoading && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
-          <div className="flex items-center space-x-2">
-            <Loader className="w-5 h-5 animate-spin" style={{ color: '#14b8a6' }} />
-            <span className="text-sm font-medium" style={{ color: '#374151' }}>
-              Syncing...
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Content Area */}
       <div className="p-6 flex-1">
-        {/* Custom children or default content */}
         {children ? (
           children
         ) : (
@@ -331,7 +182,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               style={{ borderColor: '#d1d5db' }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
-              onClick={() => !actualIsLoading && fileInputRef.current?.click()}
+              onClick={() => !loading && fileInputRef.current?.click()}
             >
               <input
                 ref={fileInputRef}
@@ -339,7 +190,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 accept={accept}
                 className="hidden"
                 onChange={handleFileSelect}
-                disabled={actualIsLoading}
+                disabled={loading}
               />
               <div className="flex flex-col items-center space-y-4">
                 <div
@@ -354,7 +205,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                     background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
                     boxShadow: '0 4px 6px -1px rgba(20, 184, 166, 0.1)'
                   }}
-                  disabled={actualIsLoading}
+                  disabled={loading}
                 >
                   {buttonText}
                 </button>
@@ -373,43 +224,15 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           </div>
         )}
 
-        {/* Uploading State */}
-        {actualUploadState === 'uploading' && showProgress && (
-          <div className="space-y-4">
-            <div className="text-center space-y-3">
-              <div className="flex items-center justify-center space-x-2">
-                <Loader className="w-5 h-5 animate-spin" style={{ color: '#f59e42' }} />
-                <span className="font-semibold" style={{ color: '#111827' }}>
-                  {isVideo ? 'Uploading video...' : 'Uploading file...'}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className="h-3 rounded-full transition-all duration-300"
-                  style={{
-                    background: 'linear-gradient(90deg, #f59e42 0%, #f97316 100%)',
-                    width: `${actualUploadProgress}%`
-                  }}
-                />
-              </div>
-              <p className="text-sm font-medium" style={{ color: '#6b7280' }}>
-                {Math.round(actualUploadProgress)}% complete
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Uploaded State - File Info */}
-        {actualUploadState === 'uploaded' && (actualUploadedFile || videoFile) && !children && (
+        {actualUploadState === 'uploaded' && actualUploadedFile && !children && (
           <div className="space-y-4">
             <div>
               <h3 className="font-semibold text-lg mb-1" style={{ color: '#111827' }}>
-                {(videoFile || actualUploadedFile)?.name}
+                {actualUploadedFile.name}
               </h3>
             </div>
-            
-            {/* Video-specific cards layout */}
-            {isVideo && (videoFile || actualUploadedFile) && (
+            {isVideo && (
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-4 rounded-lg border" style={{ borderColor: '#e5e7eb' }}>
                   <div className="w-10 h-10 rounded-lg mx-auto mb-2 flex items-center justify-center" style={{ backgroundColor: '#f0fdf4' }}>
@@ -417,7 +240,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   </div>
                   <p className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>Resolution</p>
                   <p className="text-sm font-semibold" style={{ color: '#111827' }}>
-                    {getResolutionText((videoFile as VideoFile)?.width, (videoFile as VideoFile)?.height)}
+                    {actualUploadedFile.width && actualUploadedFile.height ? `${actualUploadedFile.width}×${actualUploadedFile.height}` : '--'}
                   </p>
                 </div>
                 <div className="text-center p-4 rounded-lg border" style={{ borderColor: '#e5e7eb' }}>
@@ -426,7 +249,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   </div>
                   <p className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>Size</p>
                   <p className="text-sm font-semibold" style={{ color: '#111827' }}>
-                    {formatFileSize((videoFile || actualUploadedFile)?.size || 0)}
+                    {actualUploadedFile.size ? `${(actualUploadedFile.size / (1024 * 1024)).toFixed(1)} MB` : '--'}
                   </p>
                 </div>
                 <div className="text-center p-4 rounded-lg border" style={{ borderColor: '#e5e7eb' }}>
@@ -435,17 +258,17 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   </div>
                   <p className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>Length</p>
                   <p className="text-sm font-semibold" style={{ color: '#111827' }}>
-                    {formatDuration((videoFile as VideoFile)?.duration)}
+                    {actualUploadedFile.duration ?
+                      `${Math.floor(actualUploadedFile.duration / 60)}:${Math.floor(actualUploadedFile.duration % 60).toString().padStart(2, '0')}` :
+                      '--:--'}
                   </p>
                 </div>
               </div>
             )}
-
-            {/* Default file info for non-video files */}
             {!isVideo && (
               <div className="text-center p-4 rounded-lg border" style={{ borderColor: '#e5e7eb' }}>
                 <p className="text-sm font-semibold" style={{ color: '#111827' }}>
-                  {formatFileSize(actualUploadedFile?.size || 0)}
+                  {actualUploadedFile.size ? `${(actualUploadedFile.size / (1024 * 1024)).toFixed(1)} MB` : '--'}
                 </p>
               </div>
             )}
@@ -465,16 +288,34 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               </div>
             </div>
             <button
-              onClick={handleReset}
+              onClick={onReset}
               className="w-full px-4 py-3 border rounded-lg text-sm font-semibold transition-colors hover:bg-gray-50 disabled:opacity-50"
               style={{ color: '#374151', borderColor: '#d1d5db' }}
-              disabled={actualIsLoading}
+              disabled={loading}
             >
               Try Again
             </button>
           </div>
         )}
       </div>
+
+      {/* Uploading Loading Bar (indeterminate) */}
+      {actualUploadState === 'uploading' && (
+        <div className="px-6 pb-6 flex-shrink-0">
+          <div className="space-y-4">
+            <div className="text-center space-y-3">
+              <div className="flex items-center justify-center space-x-2">
+                <Loader className="w-5 h-5 animate-spin" style={{ color: '#f59e42' }} />
+                <span className="font-semibold" style={{ color: '#111827' }}>Uploading video...</span>
+              </div>
+              <ProgressBar />
+              <p className="text-sm font-medium" style={{ color: '#6b7280' }}>
+                Processing...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </StageCard>
   );
 }; 

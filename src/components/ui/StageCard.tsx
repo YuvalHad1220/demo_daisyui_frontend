@@ -8,6 +8,7 @@ interface StageCardProps {
   showReset?: boolean;
   resetTitle?: string;
   onResetClick?: () => void;
+  resetting?: boolean;
   children: React.ReactNode;
   className?: string;
 }
@@ -18,13 +19,14 @@ export const StageCard: React.FC<StageCardProps> = ({
   showReset = false,
   resetTitle = 'Reset',
   onResetClick,
+  resetting = false,
   children,
   className = ''
 }) => {
   return (
     <div className={`w-full h-full p-6 ${className}`}>
       <div 
-        className="bg-white rounded-xl border shadow-sm overflow-hidden h-full flex flex-col" 
+        className="bg-white rounded-xl border shadow-sm h-full flex flex-col" 
         style={{ borderColor: '#e5e7eb' }}
       >
         {/* Header */}
@@ -52,8 +54,13 @@ export const StageCard: React.FC<StageCardProps> = ({
                 onClick={onResetClick}
                 className="flex items-center justify-center w-8 h-8 rounded-lg border transition-colors hover:bg-gray-50"
                 style={{ color: '#6b7280', borderColor: '#d1d5db' }}
+                disabled={resetting}
               >
-                <RotateCcw className="w-4 h-4" />
+                {resetting ? (
+                  <RotateCcw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-4 h-4" />
+                )}
               </button>
             </Tooltip>
           )}

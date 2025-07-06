@@ -1,69 +1,22 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FileUpload } from '../components/ui/FileUpload';
 import { useWorkflow } from '../hooks/useWorkflow';
-import { UploadedFile } from '../hooks/useFileUpload';
+import type { UploadedFile } from '../hooks/useFileUpload';
 
 const Step1FileUpload: React.FC = () => {
   const { fileUpload } = useWorkflow();
+  const [resetting, setResetting] = useState(false);
 
-  const handleFileComplete = useCallback(async (file: UploadedFile) => {
-    try {
-      await fileUpload.setUploadedFile(file);
-      await fileUpload.setUploadState('uploaded');
-      
-      // Create a temporary video element to get metadata
+  // All hooks must be called before any return!
+  const handleFileUpload = useCallback(async (file: File) => {
+    await fileUpload.uploadFile(file);
+    // After upload, extract video metadata if video
+    if (file.type.startsWith('video/')) {
       const video = document.createElement('video');
-      video.src = file.url || '';
+      video.src = URL.createObjectURL(file);
       video.onloadedmetadata = async () => {
-        try {
-          await fileUpload.updateVideoMetadata(video.duration, video.videoWidth, video.videoHeight);
-        } catch (error) {
-          console.error('Failed to update video metadata:', error);
-        }
+        await fileUpload.updateVideoMetadata(video.duration, video.videoWidth, video.videoHeight);
       };
-    } catch (error) {
-      console.error('Failed to complete file upload:', error);
-      // Optionally show error to user
-      try {
-        await fileUpload.setError('Failed to save file information');
-        await fileUpload.setUploadState('error');
-      } catch (errorSettingError) {
-        console.error('Failed to set error state:', errorSettingError);
-      }
-    }
-  }, [fileUpload]);
-
-  const handleUploadStart = useCallback(async () => {
-    try {
-      await fileUpload.setUploadState('uploading');
-      await fileUpload.setUploadProgress(0);
-    } catch (error) {
-      console.error('Failed to start upload:', error);
-    }
-  }, [fileUpload]);
-
-  const handleUploadError = useCallback(async (error: string) => {
-    try {
-      await fileUpload.setError(error);
-      await fileUpload.setUploadState('error');
-    } catch (errorSettingError) {
-      console.error('Failed to set error state:', errorSettingError);
-    }
-  }, [fileUpload]);
-
-  const handleReset = useCallback(async () => {
-    try {
-      await fileUpload.resetUpload();
-    } catch (error) {
-      console.error('Failed to reset upload:', error);
-    }
-  }, [fileUpload]);
-
-  const handleProgressUpdate = useCallback(async (progress: number) => {
-    try {
-      await fileUpload.setUploadProgress(progress);
-    } catch (error) {
-      console.error('Failed to update progress:', error);
     }
   }, [fileUpload]);
 
@@ -78,28 +31,30 @@ const Step1FileUpload: React.FC = () => {
     return null;
   }, []);
 
+  const handleReset = useCallback(async () => {
+    setResetting(true);
+    await fileUpload.reset();
+    setResetting(false);
+  }, [fileUpload]);
+
   return (
     <FileUpload
       accept="video/*"
       maxSizeMB={20}
-      allowedTypes={['video/mp4', 'video/x-msvideo', 'video/quicktime', 'video/x-matroska']}
+      allowedTypes={['video/mp4']}
       customValidation={videoValidation}
       title={fileUpload.uploadedFile ? fileUpload.uploadedFile.name : 'Video Upload'}
       buttonText="Upload Video"
       dragText="Drag and drop or click to select"
       sizeText="Supports MP4, MKV • Maximum 20MB"
-      onUploadStart={handleUploadStart}
-      onUploadComplete={handleFileComplete}
-      onUploadError={handleUploadError}
-      onReset={handleReset}
-      onProgressUpdate={handleProgressUpdate}
       uploadDuration={1500}
       videoFile={fileUpload.uploadedFile}
-      // Pass the current state to FileUpload
       currentUploadState={fileUpload.uploadState}
       currentUploadProgress={fileUpload.uploadProgress}
       currentError={fileUpload.error}
-      isLoading={fileUpload.isLoading}
+      onFileSelect={handleFileUpload}
+      onReset={handleReset}
+      resetting={resetting}
     />
   );
 };
