@@ -12,6 +12,7 @@ export interface VideoFile extends UploadedFile {
   duration?: number;
   width?: number;
   height?: number;
+  finished?: boolean;
 }
 
 export type UploadState = 'initial' | 'uploading' | 'uploaded' | 'error';
@@ -25,6 +26,7 @@ interface FileUploadHookReturn {
   uploadFile: (file: File) => Promise<void>;
   reset: () => Promise<void>;
   updateVideoMetadata: (duration?: number, width?: number, height?: number) => Promise<void>;
+  finished: boolean;
 }
 
 const initialState = {
@@ -108,6 +110,13 @@ export const useFileUpload = (): FileUploadHookReturn => {
     }
   }, []);
 
+  const finished =
+    uploadState === 'uploaded' &&
+    !!uploadedFile &&
+    typeof uploadedFile.width === 'number' &&
+    typeof uploadedFile.height === 'number' &&
+    typeof uploadedFile.duration === 'number';
+
   const result = useMemo(() => ({
     loading,
     uploadState,
@@ -117,7 +126,8 @@ export const useFileUpload = (): FileUploadHookReturn => {
     uploadFile,
     reset,
     updateVideoMetadata,
-  }), [loading, uploadState, uploadedFile, uploadProgress, error, uploadFile, reset, updateVideoMetadata]);
+    finished,
+  }), [loading, uploadState, uploadedFile, uploadProgress, error, uploadFile, reset, updateVideoMetadata, finished]);
 
   return result;
 }; 

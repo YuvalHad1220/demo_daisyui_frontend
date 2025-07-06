@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { useFileUpload } from './useFileUpload';
 import Step1FileUpload from '../steps/Step1FileUpload';
 import Step2EncodingStarted from '../steps/Step2EncodingStarted';
@@ -35,6 +36,7 @@ export interface StepSummary {
   count?: number;
   width?: number;
   height?: number;
+  finished?: boolean;
 }
 
 interface WorkflowContextType {
@@ -103,8 +105,8 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     },
   ], []);
 
+  const { uploadedFile, finished } = fileUpload;
   const stepSummaries = useMemo((): (StepSummary | null)[] => {
-    const { uploadedFile } = fileUpload;
     return [
       {
         name: uploadedFile?.name || '--',
@@ -112,7 +114,8 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
         height: uploadedFile?.height,
         resolution: uploadedFile?.width && uploadedFile?.height ? `${uploadedFile.width}x${uploadedFile.height}` : '--',
         size: uploadedFile?.size ? `${(uploadedFile.size / (1024 * 1024)).toFixed(1)} MB` : '--',
-        duration: uploadedFile?.duration
+        duration: uploadedFile?.duration,
+        finished,
       },
       null,
       {

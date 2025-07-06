@@ -33,7 +33,7 @@ export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({
   // Render compact metadata with small icons using README color guidelines
   const renderMetadata = () => {
     if (!summaryData) return null;
-    
+    if (!summaryData.finished) return null;
     switch (stepLabel) {
       case 'File Upload':
         return (
@@ -105,6 +105,8 @@ export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({
     }
   };
 
+  const metadata = renderMetadata();
+
   return (
       <div
         className={`flex items-center px-3 py-2.5 mx-2 my-1 h-16 rounded-lg border transition-all duration-200 cursor-pointer group hover:scale-[1.01]
@@ -167,9 +169,9 @@ export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({
           >
             {stepLabel}
           </div>
-          {isCompleted && (
+          {(isCompleted || isCurrent) && metadata && (
             <div className="flex items-center gap-1 mt-0.5 overflow-hidden">
-              {renderMetadata()}
+              {metadata}
             </div>
           )}
         </div>
