@@ -54,7 +54,7 @@ export const DragAndDrop: React.FC<DragAndDropProps> = ({
 
   return (
     <div
-      className="border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 cursor-pointer hover:border-gray-400 hover:bg-gray-50"
+      className="border-2 border-dashed rounded-lg p-4 text-center transition-all duration-200 cursor-pointer hover:border-gray-400 hover:bg-gray-50"
       style={{ borderColor: '#d1d5db' }}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
@@ -76,7 +76,7 @@ export const DragAndDrop: React.FC<DragAndDropProps> = ({
           <Upload className="w-6 h-6" style={{ color: '#14b8a6' }} />
         </div>
         <button
-          className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-8 py-3 rounded-lg font-semibold text-lg text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
             background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
             boxShadow: '0 4px 6px -1px rgba(20, 184, 166, 0.1)'

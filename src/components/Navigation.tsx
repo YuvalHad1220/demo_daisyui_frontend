@@ -15,7 +15,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   const { allSteps, isFirstStep, isLastStep } = useWorkflow();
 
   return (
-    <div className="flex-shrink-0 pt-6">
+    <div className="flex-shrink-0 pb-6 bg-gray-50 px-6">
       <div className="flex justify-between items-center">
         <button
           className="group flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-sm"
@@ -72,4 +72,4 @@ export const Navigation: React.FC<NavigationProps> = ({
       </div>
     </div>
   );
-}; 
+};

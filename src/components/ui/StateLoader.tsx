@@ -14,7 +14,7 @@ export const StateLoader: React.FC<StateLoaderProps> = ({ message = 'Uploading v
       <div className="text-center space-y-3">
         <div className="flex items-center justify-center space-x-2">
           <Loader className="w-5 h-5 animate-spin" style={{ color: '#f59e42' }} />
-          <span className="font-semibold" style={{ color: '#111827' }}>{message}</span>
+          <span className="font-semibold text-lg" style={{ color: '#111827' }}>{message}</span>
         </div>
         <ProgressBar value={typeof progress === 'number' ? progress : undefined} />
         <p className="text-sm font-medium" style={{ color: '#6b7280' }}>
@@ -23,4 +23,4 @@ export const StateLoader: React.FC<StateLoaderProps> = ({ message = 'Uploading v
       </div>
     </div>
   </div>
-); 
+);
