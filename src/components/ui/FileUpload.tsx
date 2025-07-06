@@ -1,15 +1,15 @@
 import React, { useRef, useCallback } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
-import { Upload, Video, Monitor, HardDrive, Clock, AlertCircle, Loader } from 'lucide-react';
+import { Upload, Video, Monitor, HardDrive, Clock, AlertCircle } from 'lucide-react';
 import { StageCard } from './StageCard';
-import { ProgressBar } from './ProgressBar';
+import { StateLoader } from './StateLoader';
 
 export interface UploadedFile {
   name: string;
   size: number;
   type: string;
   url?: string;
-  [key: string]: any; // Allow additional propertiesm
+  [key: string]: any;
 }
 
 export interface VideoFile extends UploadedFile {
@@ -20,61 +20,45 @@ export interface VideoFile extends UploadedFile {
 
 export type UploadState = 'initial' | 'uploading' | 'uploaded' | 'error';
 
-export interface FileUploadConfig {
+export interface FileUploadProps {
   accept?: string;
-  maxSize?: number; // in bytes
+  maxSizeMB?: number;
   allowedTypes?: string[];
-  maxSizeMB?: number; // convenience prop
-  onFileSelect?: (file: File) => void | Promise<void>;
-  onReset?: () => void | Promise<void>;
-  uploadDuration?: number; // milliseconds
+  customValidation?: (file: File) => string | null;
   title?: string;
-  subtitle?: string;
   buttonText?: string;
   dragText?: string;
   sizeText?: string;
-  showResetButton?: boolean;
-  showProgress?: boolean;
-  customValidation?: (file: File) => string | null; // returns error message or null
-  videoFile?: VideoFile | null; // For video-specific display
-  // External state props
-  currentUploadState?: UploadState;
-  currentUploadProgress?: number;
+  onFileSelect: (file: File) => void | Promise<void>;
+  onReset?: () => void | Promise<void>;
+  videoFile?: VideoFile | null;
+  currentUploadState: UploadState;
   currentError?: string;
   loading?: boolean;
   resetting?: boolean;
-}
-
-interface FileUploadProps extends FileUploadConfig {
   className?: string;
-  children?: React.ReactNode;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
-  accept = "*/*",
-  maxSize,
-  maxSizeMB,
-  allowedTypes,
+  accept = "video/*",
+  maxSizeMB = 20,
+  allowedTypes = ['video/mp4'],
+  customValidation,
+  title = "Video Upload",
+  buttonText = "Upload Video",
+  dragText = "Drag and drop or click to select",
+  sizeText = "Supports MP4, MKV • Maximum 20MB",
   onFileSelect,
   onReset,
-  title = "File Upload",
-  buttonText = "Upload File",
-  dragText = "Drag and drop or click to select",
-  sizeText,
-  showResetButton = true,
-  customValidation,
-  className = "",
-  children,
   videoFile,
   currentUploadState,
-  currentUploadProgress,
   currentError,
   loading = false,
-  resetting = false
+  resetting = false,
+  className = ""
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Use only props for state
   const actualUploadState = currentUploadState;
   const actualError = currentError;
   const actualUploadedFile = videoFile;
@@ -92,20 +76,19 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     if (allowedTypes && !allowedTypes.includes(file.type)) {
       return `File type not supported. Allowed types: ${allowedTypes.join(', ')}`;
     }
-    const maxSizeBytes = maxSize || (maxSizeMB ? maxSizeMB * 1024 * 1024 : undefined);
-    if (maxSizeBytes && file.size > maxSizeBytes) {
-      const maxSizeMB = Math.round(maxSizeBytes / (1024 * 1024));
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
       return `File size must be less than ${maxSizeMB}MB`;
     }
     return null;
-  }, [allowedTypes, maxSize, maxSizeMB, customValidation]);
+  }, [allowedTypes, maxSizeMB, customValidation]);
 
   const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && !loading) {
       const validationError = validateFile(file);
       if (!validationError) {
-        onFileSelect?.(file);
+        onFileSelect(file);
       }
     }
   }, [onFileSelect, validateFile, loading]);
@@ -116,18 +99,16 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     if (file && !loading) {
       const validationError = validateFile(file);
       if (!validationError) {
-        onFileSelect?.(file);
+        onFileSelect(file);
       }
     }
   }, [onFileSelect, validateFile, loading]);
-
-
 
   return (
     <StageCard
       title={cardTitle}
       icon={cardIcon}
-      showReset={actualUploadState === 'uploaded' && showResetButton}
+      showReset={actualUploadState === 'uploaded'}
       resetTitle={resetTitle}
       onResetClick={onReset}
       resetting={resetting}
@@ -135,41 +116,37 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     >
       {/* Content Area */}
       <div className="p-6 flex-1">
-        {children ? (
-          children
-        ) : (
-          <div className="aspect-video bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border" style={{ borderColor: '#e5e7eb' }}>
-            {actualUploadState === 'uploaded' && actualUploadedFile?.url && isVideo ? (
-              <video
-                src={actualUploadedFile.url}
-                className="w-full h-full object-contain rounded-lg"
-                controls
-              />
-            ) : actualUploadState === 'uploaded' && actualUploadedFile?.url ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-lg mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: '#f0fdfa' }}>
-                    <Upload className="w-8 h-8" style={{ color: '#14b8a6' }} />
-                  </div>
-                  <p className="text-sm font-medium" style={{ color: '#374151' }}>
-                    {actualUploadedFile.name}
-                  </p>
+        <div className="aspect-video bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border" style={{ borderColor: '#e5e7eb' }}>
+          {actualUploadState === 'uploaded' && actualUploadedFile?.url && isVideo ? (
+            <video
+              src={actualUploadedFile.url}
+              className="w-full h-full object-contain rounded-lg"
+              controls
+            />
+          ) : actualUploadState === 'uploaded' && actualUploadedFile?.url ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-lg mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: '#f0fdfa' }}>
+                  <Upload className="w-8 h-8" style={{ color: '#14b8a6' }} />
                 </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center space-y-3 opacity-40">
-                {isVideo ? (
-                  <Video className="w-12 h-12" style={{ color: '#9ca3af' }} />
-                ) : (
-                  <Upload className="w-12 h-12" style={{ color: '#9ca3af' }} />
-                )}
-                <p className="text-sm font-medium" style={{ color: '#9ca3af' }}>
-                  {isVideo ? 'Video Preview' : 'File Preview'}
+                <p className="text-sm font-medium" style={{ color: '#374151' }}>
+                  {actualUploadedFile.name}
                 </p>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center space-y-3 opacity-40">
+              {isVideo ? (
+                <Video className="w-12 h-12" style={{ color: '#9ca3af' }} />
+              ) : (
+                <Upload className="w-12 h-12" style={{ color: '#9ca3af' }} />
+              )}
+              <p className="text-sm font-medium" style={{ color: '#9ca3af' }}>
+                {isVideo ? 'Video Preview' : 'File Preview'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer */}
@@ -225,7 +202,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         )}
 
         {/* Uploaded State - File Info */}
-        {actualUploadState === 'uploaded' && actualUploadedFile && !children && (
+        {actualUploadState === 'uploaded' && actualUploadedFile && (
           <div className="space-y-4">
             <div>
               <h3 className="font-semibold text-lg mb-1" style={{ color: '#111827' }}>
@@ -301,21 +278,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* Uploading Loading Bar (indeterminate) */}
       {actualUploadState === 'uploading' && (
-        <div className="px-6 pb-6 flex-shrink-0">
-          <div className="space-y-4">
-            <div className="text-center space-y-3">
-              <div className="flex items-center justify-center space-x-2">
-                <Loader className="w-5 h-5 animate-spin" style={{ color: '#f59e42' }} />
-                <span className="font-semibold" style={{ color: '#111827' }}>Uploading video...</span>
-              </div>
-              <ProgressBar />
-              <p className="text-sm font-medium" style={{ color: '#6b7280' }}>
-                Processing...
-              </p>
-            </div>
-          </div>
-        </div>
+        <StateLoader message="Uploading video..." progress={null} />
       )}
     </StageCard>
   );
-}; 
+};
