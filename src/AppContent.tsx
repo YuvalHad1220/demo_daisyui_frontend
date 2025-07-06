@@ -10,6 +10,7 @@ export function AppContent() {
     goToPrevious,
     goToNext,
     canGoToStep,
+    isStepCompleted,
     isFirstStep,
     isLastStep,
     allSteps,
@@ -33,6 +34,8 @@ export function AppContent() {
       <Sidebar
         currentStep={currentStep}
         onStepClick={handleStepClick}
+        canGoToStep={canGoToStep}
+        isStepCompleted={isStepCompleted}
         workflowConfig={workflowConfig}
         stepSummaries={stepSummaries}
         groupStartIndices={groupStartIndices}

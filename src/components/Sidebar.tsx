@@ -1,10 +1,12 @@
 import React from 'react';
 import { SidebarStepSummary } from '../SidebarStepSummary';
-import { StepGroup, StepSummary } from '../hooks/useWorkflow';
+import type { StepGroup, StepSummary } from '../hooks/useWorkflow';
 
 interface SidebarProps {
   currentStep: number;
   onStepClick: (stepIndex: number) => void;
+  canGoToStep: (stepIndex: number) => boolean;
+  isStepCompleted: (stepIndex: number) => boolean;
   workflowConfig: StepGroup[];
   stepSummaries: (StepSummary | null)[];
   groupStartIndices: number[];
@@ -13,6 +15,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ 
   currentStep, 
   onStepClick,
+  canGoToStep,
+  isStepCompleted,
   workflowConfig,
   stepSummaries,
   groupStartIndices
@@ -35,11 +39,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex flex-col gap-1">
               {group.steps.map((step, idx) => {
                 const stepIdx = groupStartIndices[groupIdx] + idx;
+                const isClickable = canGoToStep(stepIdx);
                 return (
                   <div 
                     key={step.label} 
-                    onClick={() => stepIdx <= currentStep && onStepClick(stepIdx)} 
-                    style={{ cursor: stepIdx <= currentStep ? 'pointer' : 'not-allowed' }}
+                    onClick={() => isClickable && onStepClick(stepIdx)} 
+                    style={{ cursor: isClickable ? 'pointer' : 'not-allowed' }}
                   >
                     <SidebarStepSummary
                       stepIndex={stepIdx}
@@ -47,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       stepLabel={step.label}
                       summaryData={stepSummaries[stepIdx]}
                       icon={step.icon}
+                      isStepCompleted={isStepCompleted}
                     />
                   </div>
                 );

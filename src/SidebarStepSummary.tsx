@@ -7,6 +7,7 @@ interface SidebarStepSummaryProps {
   stepLabel: string;
   summaryData?: any; // shape depends on step
   icon: React.ElementType;
+  isStepCompleted: (stepIndex: number) => boolean;
 }
 
 function getResolutionLabel(width?: number, height?: number): string {
@@ -35,9 +36,10 @@ export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({
   currentStep, 
   stepLabel, 
   summaryData, 
-  icon: Icon
+  icon: Icon,
+  isStepCompleted
 }) => {
-  const isCompleted = stepIndex < currentStep;
+  const isCompleted = isStepCompleted(stepIndex);
   const isCurrent = stepIndex === currentStep;
   const isFuture = stepIndex > currentStep;
 

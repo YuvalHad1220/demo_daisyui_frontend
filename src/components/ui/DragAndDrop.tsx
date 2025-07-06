@@ -54,8 +54,11 @@ export const DragAndDrop: React.FC<DragAndDropProps> = ({
 
   return (
     <div
-      className="border-2 border-dashed rounded-lg p-4 text-center transition-all duration-200 cursor-pointer hover:border-gray-400 hover:bg-gray-50"
-      style={{ borderColor: '#d1d5db' }}
+      className="border-2 border-dashed rounded-lg p-4 text-center transition-all duration-200 cursor-pointer"
+      style={{ 
+        borderColor: '#e8e6e3',
+        backgroundColor: '#fdfcfb'
+      }}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
       onClick={() => !loading && fileInputRef.current?.click()}

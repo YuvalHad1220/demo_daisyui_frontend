@@ -43,6 +43,7 @@ export interface StepSummary {
 interface WorkflowContextType {
   currentStep: number;
   setCurrentStep: (step: number) => void;
+  completedSteps: Set<number>;
   workflowConfig: StepGroup[];
   allSteps: StepConfig[];
   stepSummaries: (StepSummary | null)[];
@@ -57,6 +58,8 @@ interface WorkflowContextType {
   goToPrevious: () => void;
   goToNext: () => void;
   canGoToStep: (stepIndex: number) => boolean;
+  isStepCompleted: (stepIndex: number) => boolean;
+  markStepAsCompleted: (stepIndex: number) => void;
   getStepSummary: (stepIndex: number) => StepSummary | null;
   getCurrentStepSummary: () => StepSummary | null;
   fileUpload: ReturnType<typeof useFileUpload>;
@@ -67,6 +70,7 @@ const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined
 
 export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const fileUpload = useFileUpload();
   const encoding = useEncoding();
 
@@ -192,12 +196,21 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
 
   const goToNext = () => {
     if (!isLastStep) {
+      markStepAsCompleted(currentStep);
       setCurrentStep(currentStep + 1);
     }
   };
 
   const canGoToStep = (stepIndex: number) => {
-    return stepIndex <= currentStep;
+    return stepIndex <= currentStep || completedSteps.has(stepIndex);
+  };
+
+  const isStepCompleted = (stepIndex: number) => {
+    return completedSteps.has(stepIndex);
+  };
+
+  const markStepAsCompleted = (stepIndex: number) => {
+    setCompletedSteps(prev => new Set([...prev, stepIndex]));
   };
 
   const getStepSummary = (stepIndex: number) => {
@@ -211,6 +224,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const value: WorkflowContextType = {
     currentStep,
     setCurrentStep,
+    completedSteps,
     workflowConfig,
     allSteps,
     stepSummaries,
@@ -225,11 +239,24 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     goToPrevious,
     goToNext,
     canGoToStep,
+    isStepCompleted,
+    markStepAsCompleted,
     getStepSummary,
     getCurrentStepSummary,
     fileUpload,
     encoding,
   };
+
+  React.useEffect(() => {
+    if (fileUpload.finished && !completedSteps.has(0)) {
+      markStepAsCompleted(0);
+    }
+    
+    if (encoding.encodingState === 'done') {
+      if (!completedSteps.has(1)) markStepAsCompleted(1);
+      if (!completedSteps.has(2)) markStepAsCompleted(2);
+    }
+  }, [fileUpload.finished, encoding.encodingState]);
 
   return (
     <WorkflowContext.Provider value={value}>

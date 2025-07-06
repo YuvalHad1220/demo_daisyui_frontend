@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Upload, Video, Monitor, HardDrive, Clock, AlertCircle } from 'lucide-react';
 import { StageCard } from './StageCard';
 import { StateLoader } from './StateLoader';
@@ -21,7 +21,7 @@ export interface VideoFile extends UploadedFile {
 
 export type UploadState = 'initial' | 'uploading' | 'uploaded' | 'error';
 
-export interface FileUploadProps {
+export interface UploadVideoProps {
   accept?: string;
   maxSizeMB?: number;
   allowedTypes?: string[];
@@ -39,7 +39,7 @@ export interface FileUploadProps {
   className?: string;
 }
 
-export const FileUpload: React.FC<FileUploadProps> = ({
+export const UploadVideo: React.FC<UploadVideoProps> = ({
   accept = "video/*",
   maxSizeMB = 20,
   allowedTypes = ['video/mp4'],
@@ -188,4 +188,4 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       )}
     </StageCard>
   );
-};
+}; 
