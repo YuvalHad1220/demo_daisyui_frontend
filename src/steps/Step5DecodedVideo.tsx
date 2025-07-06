@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Play, Camera, AlertCircle } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
+import { AppButton } from '../components/ui/AppButton';
 
 const Step5DecodedVideo: React.FC = () => {
   const [screenshotToast, setScreenshotToast] = useState(false);
@@ -169,15 +170,14 @@ const Step5DecodedVideo: React.FC = () => {
           </span>
         </div>
         {/* Screenshot Button */}
-        <button
+        <AppButton
+          icon={<Camera className="w-5 h-5" />}
           onClick={takeScreenshot}
-          className="px-6 py-3 rounded-lg font-semibold text-white flex items-center space-x-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg mb-2"
-          style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', boxShadow: '0 4px 6px -1px rgba(20,184,166,0.1)' }}
-          disabled={!!error}
+          className="mb-2"
+          disabled={!!error || !decodedVideoUrl}
         >
-          <Camera className="w-5 h-5" />
-          <span>Take Screenshot</span>
-        </button>
+          Take Screenshot
+        </AppButton>
         {/* Screenshot Toast */}
         {screenshotToast && (
           <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white border rounded-lg shadow-lg px-6 py-3 flex items-center space-x-2 animate-fade-in z-[999]" style={{ borderColor: '#14b8a6', zIndex: 999 }}>

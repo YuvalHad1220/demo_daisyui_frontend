@@ -5,6 +5,7 @@ import { FileInfoCard } from '../components/ui/FileInfoCard';
 import LoadingCircular from '../components/ui/LoadingCircular';
 import { useWorkflow } from '../hooks/useWorkflow';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { AppButton } from '../components/ui/AppButton';
 
 const Step3EncodingFinished: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);

@@ -3,6 +3,7 @@ import { Play, AlertCircle, Check } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
 import LoadingCircular from '../components/ui/LoadingCircular';
 import { useWorkflow } from '../hooks/useWorkflow';
+import { AppButton } from '../components/ui/AppButton';
 
 const Step2EncodingStarted: React.FC = () => {
   const { encoding } = useWorkflow();
@@ -41,17 +42,9 @@ const Step2EncodingStarted: React.FC = () => {
       <div className="flex-1 flex items-center justify-center px-6 py-8">
         {encodingState === 'initial' && (
           <div className="flex flex-col items-center space-y-6 animate-fade-in">
-            <button
-              onClick={handleStartEncoding}
-              className="px-8 py-3 rounded-lg font-semibold text-white flex items-center space-x-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
-              style={{ 
-                background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-                boxShadow: '0 4px 6px -1px rgba(20, 184, 166, 0.1)'
-              }}
-            >
-              <Play className="w-5 h-5" />
-              <span>Start Encoding</span>
-            </button>
+            <AppButton icon={<Play className="w-5 h-5" />} onClick={handleStartEncoding}>
+              Start Encoding
+            </AppButton>
             <p className="text-sm" style={{ color: '#6b7280' }}>
               Click to begin encoding your video. This may take a few moments.
             </p>
@@ -79,13 +72,9 @@ const Step2EncodingStarted: React.FC = () => {
                 <p className="text-sm" style={{ color: '#991b1b' }}>{encodingError}</p>
               </div>
             </div>
-            <button
-              onClick={handleRetry}
-              className="w-full px-4 py-3 border rounded-lg text-sm font-semibold transition-colors hover:bg-gray-50"
-              style={{ color: '#374151', borderColor: '#d1d5db' }}
-            >
+            <AppButton onClick={handleRetry} className="w-full" style={{ color: '#374151', background: '#f3f4f6', border: '1px solid #d1d5db' }}>
               Try Again
-            </button>
+            </AppButton>
           </div>
         )}
         {encodingState === 'done' && (

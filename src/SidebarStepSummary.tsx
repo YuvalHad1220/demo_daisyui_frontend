@@ -57,11 +57,13 @@ export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({
           </>
         );
       case 'Encoding Finished':
+        if (!summaryData.inputSize || !summaryData.outputSize || !summaryData.duration) return null;
+        const compression = Math.round(((summaryData.inputSize - summaryData.outputSize) / summaryData.inputSize) * 100);
         return (
           <>
             <SidebarStat icon={Clock} value={`${summaryData.duration}s`} className="bg-blue-50 text-blue-700" />
-            <SidebarStat icon={TrendingDown} value={`${summaryData.compression}%`} className="bg-teal-50 text-teal-700" />
-            <SidebarStat icon={BarChart2} value={`${summaryData.saved}MB`} className="bg-purple-50 text-purple-700" />
+            <SidebarStat icon={TrendingDown} value={`~${compression}%`} className="bg-teal-50 text-teal-700" />
+            <SidebarStat icon={BarChart2} value={`${summaryData.outputSize.toFixed(2)}MB`} className="bg-purple-50 text-purple-700" />
           </>
         );
       case 'Decoding Finished':

@@ -1,6 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { Upload } from 'lucide-react';
+import { AppButton } from './AppButton';
 
 export interface DragAndDropProps {
   accept?: string;
@@ -78,16 +79,9 @@ export const DragAndDrop: React.FC<DragAndDropProps> = ({
         >
           <Upload className="w-6 h-6" style={{ color: '#14b8a6' }} />
         </div>
-        <button
-          className="px-8 py-3 rounded-lg font-semibold text-lg text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-            boxShadow: '0 4px 6px -1px rgba(20, 184, 166, 0.1)'
-          }}
-          disabled={loading}
-        >
+        <AppButton icon={<Upload className="w-5 h-5" />} disabled={loading}>
           {buttonText}
-        </button>
+        </AppButton>
         <div className="space-y-1">
           <p className="text-sm font-medium" style={{ color: '#374151' }}>
             {dragText}
