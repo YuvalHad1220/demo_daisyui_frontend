@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useFileUpload } from './useFileUpload';
+import { useEncoding } from './useEncoding';
 import Step1FileUpload from '../steps/Step1FileUpload';
 import Step2EncodingStarted from '../steps/Step2EncodingStarted';
 import Step3EncodingFinished from '../steps/Step3EncodingFinished';
@@ -59,6 +60,7 @@ interface WorkflowContextType {
   getStepSummary: (stepIndex: number) => StepSummary | null;
   getCurrentStepSummary: () => StepSummary | null;
   fileUpload: ReturnType<typeof useFileUpload>;
+  encoding: ReturnType<typeof useEncoding>;
 }
 
 const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined);
@@ -66,6 +68,7 @@ const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined
 export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const fileUpload = useFileUpload();
+  const encoding = useEncoding();
 
   const workflowConfig = useMemo((): StepGroup[] => [
     {
@@ -225,6 +228,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     getStepSummary,
     getCurrentStepSummary,
     fileUpload,
+    encoding,
   };
 
   return (

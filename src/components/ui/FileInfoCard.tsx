@@ -1,8 +1,8 @@
 import React from 'react';
-import { Icon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 export interface FileInfoCardProps {
-  icon: typeof Icon;
+  icon: LucideIcon;
   iconColor: string;
   backgroundColor: string;
   label: string;
@@ -18,7 +18,10 @@ export const FileInfoCard: React.FC<FileInfoCardProps> = ({
 }) => {
   return (
     <div className="text-center p-4 rounded-lg border" style={{ borderColor: '#e5e7eb' }}>
-      <div className="w-10 h-10 rounded-lg mx-auto mb-2 flex items-center justify-center" style={{ backgroundColor }}>
+      <div
+        className="w-10 h-10 rounded-lg mx-auto mb-2 flex items-center justify-center"
+        style={{ backgroundColor }}
+      >
         <IconComponent className="w-5 h-5" style={{ color: iconColor }} />
       </div>
       <p className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>{label}</p>
