@@ -1,0 +1,55 @@
+import React from 'react';
+import { useWorkflow } from '../hooks/useWorkflow';
+
+interface MainContentProps {
+  currentStep: number;
+}
+
+export const MainContent: React.FC<MainContentProps> = ({ currentStep }) => {
+  const { 
+    currentGroup, 
+    currentStepLabel, 
+    stepsInCurrentGroup, 
+    groupStartIndices, 
+    currentGroupIndex 
+  } = useWorkflow();
+
+  const groupStart = groupStartIndices[currentGroupIndex];
+
+  return (
+    <main className="flex-1 flex flex-col px-12 py-10" style={{ backgroundColor: '#f9fafb' }}>
+      <header className="mb-8 border-b border-gray-200 pb-4">
+        <h1 className="text-2xl font-bold text-gray-900">{currentGroup.label}</h1>
+        <p className="text-gray-500 text-sm mt-1">{currentStepLabel}</p>
+      </header>
+      <section className="flex-1 flex flex-row items-start gap-2 overflow-x-auto pb-4" style={{ minHeight: 0 }}>
+        {stepsInCurrentGroup.map((step, indexInGroup) => {
+          const stepIdx = groupStart + indexInGroup;
+          const isCompleted = stepIdx < currentStep;
+          const isCurrent = stepIdx === currentStep;
+          const isFuture = stepIdx > currentStep;
+          
+          // Don't show future steps
+          if (isFuture) return null;
+          
+          const StepComponent = step.component;
+          return (
+            <div 
+              key={step.label} 
+              className={`${
+                isCurrent 
+                  ? 'flex-1' 
+                  : 'w-80 flex-shrink-0'
+              } h-full min-w-0 relative transition-all duration-300`}
+            >
+              {/* Step content with reduced opacity for completed steps */}
+              <div className={`h-full ${isCompleted ? 'opacity-75 hover:opacity-90' : ''} transition-opacity duration-200`}>
+                <StepComponent />
+              </div>
+            </div>
+          );
+        })}
+      </section>
+    </main>
+  );
+}; 
