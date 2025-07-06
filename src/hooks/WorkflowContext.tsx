@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useFileUpload } from './useFileUpload';
 import { useEncoding } from './useEncoding';
+import { useDecoding } from './useDecoding';
 import Step1FileUpload from '../steps/Step1FileUpload';
 import Step2EncodingStarted from '../steps/Step2EncodingStarted';
 import Step3EncodingFinished from '../steps/Step3EncodingFinished';
@@ -64,6 +65,7 @@ interface WorkflowContextType {
   getCurrentStepSummary: () => StepSummary | null;
   fileUpload: ReturnType<typeof useFileUpload>;
   encoding: ReturnType<typeof useEncoding>;
+  decoding: ReturnType<typeof useDecoding>;
 }
 
 const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined);
@@ -73,6 +75,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const fileUpload = useFileUpload();
   const encoding = useEncoding();
+  const decoding = useDecoding();
 
   const workflowConfig = useMemo((): StepGroup[] => [
     {
@@ -221,6 +224,27 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     return getStepSummary(currentStep);
   };
 
+  // Auto-mark steps as completed based on their state
+  React.useEffect(() => {
+    // Mark file upload as completed if it's finished
+    if (fileUpload.finished && !completedSteps.has(0)) {
+      markStepAsCompleted(0);
+    }
+    
+    // Mark encoding steps as completed if encoding is done
+    if (encoding.encodingState === 'done') {
+      if (!completedSteps.has(1)) markStepAsCompleted(1); // Encoding Started
+      if (!completedSteps.has(2)) markStepAsCompleted(2); // Encoding Finished
+    }
+
+    // Mark decoding steps as completed if decoding is done
+    if (decoding.decodingState === 'done') {
+      if (!completedSteps.has(3)) markStepAsCompleted(3); // Decoding Started
+      if (!completedSteps.has(4)) markStepAsCompleted(4); // Decoded Video
+      if (!completedSteps.has(5)) markStepAsCompleted(5); // Decoding Finished
+    }
+  }, [fileUpload.finished, encoding.encodingState, decoding.decodingState]);
+
   const value: WorkflowContextType = {
     currentStep,
     setCurrentStep,
@@ -245,18 +269,8 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     getCurrentStepSummary,
     fileUpload,
     encoding,
+    decoding,
   };
-
-  React.useEffect(() => {
-    if (fileUpload.finished && !completedSteps.has(0)) {
-      markStepAsCompleted(0);
-    }
-    
-    if (encoding.encodingState === 'done') {
-      if (!completedSteps.has(1)) markStepAsCompleted(1);
-      if (!completedSteps.has(2)) markStepAsCompleted(2);
-    }
-  }, [fileUpload.finished, encoding.encodingState]);
 
   return (
     <WorkflowContext.Provider value={value}>

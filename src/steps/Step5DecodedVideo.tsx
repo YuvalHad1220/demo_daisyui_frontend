@@ -1,29 +1,192 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
+import { Play, Camera, AlertCircle } from 'lucide-react';
+import { StageCard } from '../components/ui/StageCard';
 
 const Step5DecodedVideo: React.FC = () => {
+  const [screenshotToast, setScreenshotToast] = useState(false);
+  const [error, setError] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(60); // Simulated duration
+  const [decodeFinished, setDecodeFinished] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Simulate decoded video URL
+  const decodedVideoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4';
+
+  const handlePlay = () => {
+    setIsPlaying(true);
+    setDecodeFinished(false);
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
+    setDecodeFinished(true);
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setDecodeFinished(true);
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
+  };
+
+  const takeScreenshot = () => {
+    if (!videoRef.current || !canvasRef.current) {
+      setError('Video not loaded');
+      return;
+    }
+
+    try {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        setError('Failed to get canvas context');
+        return;
+      }
+
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Draw the current video frame to canvas
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert canvas to blob and download
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          setError('Failed to create screenshot');
+          return;
+        }
+
+        // Generate filename with timestamp
+        const timestamp = Math.floor(currentTime);
+        const filename = `demo_screenshot_${timestamp.toString().padStart(3, '0')}.png`;
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Show success toast
+        setScreenshotToast(true);
+        setTimeout(() => setScreenshotToast(false), 1800);
+      }, 'image/png');
+    } catch (err) {
+      setError('Failed to take screenshot');
+      console.error('Screenshot error:', err);
+    }
+  };
+
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // Subtle badge style
+  const badgeStyle: React.CSSProperties = {
+    background: '#f3f4f6',
+    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: 500,
+    padding: '2px 10px',
+    borderRadius: 8,
+    marginBottom: 8,
+    display: 'inline-block',
+    letterSpacing: 0.2,
+  };
+  const badgeText = isPlaying ? 'Decode in progress' : 'Decode finished';
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Decoded Video</h3>
-      <div className="space-y-4">
-        <div className="bg-gray-100 rounded-lg p-4 text-center">
-          <div className="text-gray-500 mb-2">
-            <svg className="mx-auto h-16 w-16" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-            </svg>
+    <StageCard
+      title="Video Decoding & Playback"
+      icon={Play}
+    >
+      {/* Hidden canvas for screenshot capture */}
+      <canvas 
+        ref={canvasRef} 
+        style={{ display: 'none' }}
+      />
+      
+      {/* Main Content */}
+      <div className="px-6 py-8">
+        {error && (
+          <div className="w-full mb-4 animate-shake">
+            <div className="flex items-start space-x-3 p-4 rounded-lg border" style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#fee2e2' }}>
+                <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
+              </div>
+              <div>
+                <p className="font-semibold" style={{ color: '#dc2626' }}>Playback Error</p>
+                <p className="text-sm" style={{ color: '#991b1b' }}>{error}</p>
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-gray-600">Video preview</p>
+        )}
+        {/* Subtle Badge */}
+        <div className="w-full flex items-center" style={{ marginBottom: 4 }}>
+          <span style={badgeStyle}>{badgeText}</span>
         </div>
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2">Decoded Video Info</h4>
-          <div className="text-sm text-blue-700 space-y-1">
-            <div>Resolution: 1920x1080</div>
-            <div>Duration: 90 seconds</div>
-            <div>Frame rate: 30 fps</div>
-            <div>Codec: H.264</div>
+        {/* Video Player */}
+        <div className="w-full max-w-xl aspect-video bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border mb-2" style={{ borderColor: '#e5e7eb' }}>
+          <video
+            ref={videoRef}
+            src={decodedVideoUrl}
+            className="w-full h-full object-contain rounded-lg"
+            controls
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onEnded={handleEnded}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onError={() => setError('Failed to load video.')}
+            style={{ background: '#f9fafb' }}
+          />
+        </div>
+        {/* Timestamp (subtle, left-aligned, small) */}
+        <div className="w-full max-w-xl mb-6" style={{ textAlign: 'left' }}>
+          <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace', fontWeight: 400 }}>
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
+        </div>
+        {/* Screenshot Button */}
+        <button
+          onClick={takeScreenshot}
+          className="px-6 py-3 rounded-lg font-semibold text-white flex items-center space-x-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg mb-2"
+          style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', boxShadow: '0 4px 6px -1px rgba(20,184,166,0.1)' }}
+          disabled={!!error}
+        >
+          <Camera className="w-5 h-5" />
+          <span>Take Screenshot</span>
+        </button>
+        {/* Screenshot Toast */}
+        {screenshotToast && (
+          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white border rounded-lg shadow-lg px-6 py-3 flex items-center space-x-2 animate-fade-in z-[999]" style={{ borderColor: '#14b8a6', zIndex: 999 }}>
+            <Camera className="w-5 h-5" style={{ color: '#14b8a6' }} />
+            <span className="font-semibold text-sm" style={{ color: '#14b8a6' }}>Screenshot saved!</span>
           </div>
-        </div>
+        )}
       </div>
-    </div>
+    </StageCard>
   );
 };
 
