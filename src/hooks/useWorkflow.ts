@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Upload, Play, Zap, BarChart2, Video, Camera, CheckCircle, Image, Loader, BarChart3 } from 'lucide-react';
+import { useFileUpload } from './useFileUpload';
 import Step1FileUpload from '../steps/Step1FileUpload';
 import Step2EncodingStarted from '../steps/Step2EncodingStarted';
 import Step3EncodingFinished from '../steps/Step3EncodingFinished';
@@ -36,6 +37,9 @@ export interface StepSummary {
 
 export const useWorkflow = () => {
   const [currentStep, setCurrentStep] = useState(0);
+  
+  // File upload hook
+  const fileUpload = useFileUpload();
 
   // Workflow configuration
   const workflowConfig = useMemo((): StepGroup[] => [
@@ -204,5 +208,8 @@ export const useWorkflow = () => {
     // Metadata helpers
     getStepSummary,
     getCurrentStepSummary,
+    
+    // File upload
+    fileUpload,
   };
 }; 

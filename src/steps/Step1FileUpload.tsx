@@ -1,67 +1,71 @@
-import React, { useState, useCallback } from 'react';
-import { FileUpload, UploadedFile } from '../components/ui/FileUpload';
-import { VideoPlayer } from '../components/ui/VideoPlayer';
-import { FileInfo, FileInfoItem } from '../components/ui/FileInfo';
-
-interface VideoFile extends UploadedFile {
-  duration?: number;
-  width?: number;
-  height?: number;
-}
+import React, { useCallback } from 'react';
+import { FileUpload } from '../components/ui/FileUpload';
+import { useWorkflow } from '../hooks/useWorkflow';
+import { UploadedFile } from '../hooks/useFileUpload';
 
 const Step1FileUpload: React.FC = () => {
-  const [videoFile, setVideoFile] = useState<VideoFile | null>(null);
+  const { fileUpload } = useWorkflow();
 
-  const handleVideoLoad = useCallback((video: HTMLVideoElement) => {
-    if (videoFile) {
-      setVideoFile(prev => prev ? {
-        ...prev,
-        duration: video.duration,
-        width: video.videoWidth,
-        height: video.videoHeight
-      } : null);
-    }
-  }, [videoFile]);
-
-  const handleFileComplete = useCallback((file: UploadedFile) => {
-    setVideoFile(file as VideoFile);
-  }, []);
-
-  const formatDuration = (seconds: number | null | undefined) => {
-    if (!seconds) return '--:--';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  const getResolutionText = (width?: number, height?: number) => {
-    if (!width || !height) return '--';
-    
-    // Determine resolution label
-    if (width >= 3840 && height >= 2160) return `${width}×${height} (4K)`;
-    if (width >= 1920 && height >= 1080) return `${width}×${height} (FHD)`;
-    if (width >= 1280 && height >= 720) return `${width}×${height} (HD)`;
-    return `${width}×${height}`;
-  };
-
-  const getFileInfoItems = (): FileInfoItem[] => {
-    if (!videoFile) return [];
-
-    return [
-      {
-        label: 'Resolution',
-        value: getResolutionText(videoFile.width, videoFile.height)
-      },
-      {
-        label: 'Size',
-        value: `${(videoFile.size / (1024 * 1024)).toFixed(1)} MB`
-      },
-      {
-        label: 'Length',
-        value: formatDuration(videoFile.duration)
+  const handleFileComplete = useCallback(async (file: UploadedFile) => {
+    try {
+      await fileUpload.setUploadedFile(file);
+      await fileUpload.setUploadState('uploaded');
+      
+      // Create a temporary video element to get metadata
+      const video = document.createElement('video');
+      video.src = file.url || '';
+      video.onloadedmetadata = async () => {
+        try {
+          await fileUpload.updateVideoMetadata(video.duration, video.videoWidth, video.videoHeight);
+        } catch (error) {
+          console.error('Failed to update video metadata:', error);
+        }
+      };
+    } catch (error) {
+      console.error('Failed to complete file upload:', error);
+      // Optionally show error to user
+      try {
+        await fileUpload.setError('Failed to save file information');
+        await fileUpload.setUploadState('error');
+      } catch (errorSettingError) {
+        console.error('Failed to set error state:', errorSettingError);
       }
-    ];
-  };
+    }
+  }, [fileUpload]);
+
+  const handleUploadStart = useCallback(async () => {
+    try {
+      await fileUpload.setUploadState('uploading');
+      await fileUpload.setUploadProgress(0);
+    } catch (error) {
+      console.error('Failed to start upload:', error);
+    }
+  }, [fileUpload]);
+
+  const handleUploadError = useCallback(async (error: string) => {
+    try {
+      await fileUpload.setError(error);
+      await fileUpload.setUploadState('error');
+    } catch (errorSettingError) {
+      console.error('Failed to set error state:', errorSettingError);
+    }
+  }, [fileUpload]);
+
+  const handleReset = useCallback(async () => {
+    try {
+      await fileUpload.resetUpload();
+    } catch (error) {
+      console.error('Failed to reset upload:', error);
+    }
+  }, [fileUpload]);
+
+  const handleProgressUpdate = useCallback(async (progress: number) => {
+    try {
+      await fileUpload.setUploadProgress(progress);
+    } catch (error) {
+      console.error('Failed to update progress:', error);
+    }
+  }, [fileUpload]);
 
   const videoValidation = useCallback((file: File): string | null => {
     const allowedTypes = ['video/mp4', 'video/x-msvideo', 'video/quicktime', 'video/x-matroska'];
@@ -80,33 +84,23 @@ const Step1FileUpload: React.FC = () => {
       maxSizeMB={20}
       allowedTypes={['video/mp4', 'video/x-msvideo', 'video/quicktime', 'video/x-matroska']}
       customValidation={videoValidation}
-      title={videoFile ? videoFile.name : 'Video Upload'}
+      title={fileUpload.uploadedFile ? fileUpload.uploadedFile.name : 'Video Upload'}
       buttonText="Upload Video"
       dragText="Drag and drop or click to select"
       sizeText="Supports MP4, MKV • Maximum 20MB"
+      onUploadStart={handleUploadStart}
       onUploadComplete={handleFileComplete}
+      onUploadError={handleUploadError}
+      onReset={handleReset}
+      onProgressUpdate={handleProgressUpdate}
       uploadDuration={1500}
-    >
-      {/* Group video and cards together, compact spacing */}
-      {videoFile && (
-        <div className="flex flex-col items-center gap-4 w-full max-w-2xl mx-auto mt-2 mb-2">
-          <div className="w-full">
-            <VideoPlayer
-              src={videoFile.url || ''}
-              onLoad={handleVideoLoad}
-              controls
-              className="w-full rounded-lg shadow"
-            />
-          </div>
-          <FileInfo
-            items={getFileInfoItems()}
-            layout="cards"
-            columns={3}
-            className="w-full"
-          />
-        </div>
-      )}
-    </FileUpload>
+      videoFile={fileUpload.uploadedFile}
+      // Pass the current state to FileUpload
+      currentUploadState={fileUpload.uploadState}
+      currentUploadProgress={fileUpload.uploadProgress}
+      currentError={fileUpload.error}
+      isLoading={fileUpload.isLoading}
+    />
   );
 };
 
