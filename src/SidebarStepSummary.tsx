@@ -91,7 +91,7 @@ export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({
 
   return (
       <div
-        className={`flex items-center px-3 py-2.5 mx-2 my-1 h-16 rounded-lg border transition-all duration-200 cursor-pointer group hover:scale-[1.01]
+        className={`flex items-center px-3 py-2.5 mx-1 my-0.5 h-18 rounded-lg border transition-all duration-200 cursor-pointer group hover:scale-[1.01]
           ${isCurrent 
             ? 'border-teal-200 bg-teal-50 shadow-sm' 
             : isCompleted 

@@ -1,71 +1,42 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Play, RotateCcw, AlertCircle, Check } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
 import { AppButton } from '../components/ui/AppButton';
+import { useWorkflow } from '../hooks/useWorkflow';
 
-const Step4DecodingStarted = () => {
-  const [state, setState] = useState('initial'); // 'initial', 'decoding', 'error', 'done'
-  const [error, setError] = useState('');
-  const [progress, setProgress] = useState(0);
-  const [eta, setEta] = useState('18s');
-
-  // Simulate decoding progress
-  React.useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-    let etaInterval: ReturnType<typeof setInterval> | undefined;
-    if (state === 'decoding') {
-      interval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setState('done');
-            return 100;
-          }
-          return Math.min(prev + Math.random() * 8 + 2, 100);
-        });
-      }, 200);
-      etaInterval = setInterval(() => {
-        setEta(`${Math.max(0, Math.round((100 - progress) * 0.8))}s`);
-      }, 500);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-      if (etaInterval) clearInterval(etaInterval);
-    };
-  }, [state, progress]);
+const Step4DecodingStarted: React.FC = () => {
+  const { decoding } = useWorkflow();
+  const {
+    decodingState,
+    decodingError,
+    decodingProgress,
+    startDecode,
+    resetDecode
+  } = decoding;
 
   const handleStartDecoding = () => {
-    setError('');
-    setState('decoding');
-    setProgress(0);
-    setEta('18s');
+    startDecode();
   };
 
   const handleRetry = () => {
-    setError('');
-    setState('initial');
-    setProgress(0);
-    setEta('18s');
+    startDecode();
   };
 
   const handleReset = () => {
-    setError('');
-    setState('initial');
-    setProgress(0);
-    setEta('18s');
+    resetDecode();
   };
 
   return (
     <StageCard
       title="Video Decoding & Playback"
       icon={Play}
-      showReset={state === 'done'}
+      showReset={decodingState === 'done'}
       resetTitle="Reset Video"
       onResetClick={handleReset}
     >
       {/* Main Content */}
       <div className="flex flex-col items-center py-8 px-6 flex-1 justify-center">
-        {state === 'initial' && (
+        {decodingState === 'initial' && (
           <>
             <AppButton icon={<Play className="w-5 h-5" />} onClick={handleStartDecoding}>
               Start Decoding
@@ -76,7 +47,7 @@ const Step4DecodingStarted = () => {
           </>
         )}
 
-        {state === 'decoding' && (
+        {decodingState === 'decoding' && (
           <>
             <div className="flex flex-col items-center mb-6">
               <div className="w-14 h-14 flex items-center justify-center rounded-full mb-4" style={{ background: 'rgba(245,158,66,0.08)' }}>
@@ -93,25 +64,25 @@ const Step4DecodingStarted = () => {
                   className="h-3 rounded-full transition-all duration-300"
                   style={{
                     background: 'linear-gradient(90deg, #f59e42 0%, #f97316 100%)',
-                    width: `${progress}%`
+                    width: `${decodingProgress.progress}%`
                   }}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
                   <div className="text-xs text-gray-500 mb-1">Progress</div>
-                  <div className="text-xl font-bold" style={{ color: '#f59e42' }}>{Math.round(progress)}%</div>
+                  <div className="text-xl font-bold" style={{ color: '#f59e42' }}>{Math.round(decodingProgress.progress)}%</div>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
                   <div className="text-xs text-gray-500 mb-1">ETA</div>
-                  <div className="text-xl font-bold" style={{ color: '#2563eb' }}>{eta}</div>
+                  <div className="text-xl font-bold" style={{ color: '#2563eb' }}>{decodingProgress.eta}</div>
                 </div>
               </div>
             </div>
           </>
         )}
 
-        {state === 'error' && (
+        {decodingState === 'error' && (
           <div className="space-y-4 animate-shake w-full">
             <div className="flex items-start space-x-3 p-4 rounded-lg border" style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#fee2e2' }}>
@@ -119,7 +90,7 @@ const Step4DecodingStarted = () => {
               </div>
               <div>
                 <p className="font-semibold" style={{ color: '#dc2626' }}>Decoding Failed</p>
-                <p className="text-sm" style={{ color: '#991b1b' }}>{error}</p>
+                <p className="text-sm" style={{ color: '#991b1b' }}>{decodingError}</p>
               </div>
             </div>
             <AppButton onClick={handleRetry} className="w-full" style={{ color: '#374151', background: '#f3f4f6', border: '1px solid #d1d5db' }}>
@@ -128,7 +99,7 @@ const Step4DecodingStarted = () => {
           </div>
         )}
 
-        {state === 'done' && (
+        {decodingState === 'done' && (
           <div className="flex flex-col items-center space-y-4 animate-fade-in">
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#f0fdf4' }}>
               <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
