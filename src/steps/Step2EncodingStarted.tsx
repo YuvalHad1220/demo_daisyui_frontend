@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, AlertCircle, Check } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
+import LoadingCircular from '../components/ui/LoadingCircular';
 import { useWorkflow } from '../hooks/useWorkflow';
 
 const Step2EncodingStarted: React.FC = () => {
@@ -59,12 +60,7 @@ const Step2EncodingStarted: React.FC = () => {
         {encodingState === 'encoding' && (
           <div className="flex flex-col items-center space-y-6 animate-fade-in">
             <div className="flex flex-col items-center mb-2">
-              <div className="w-14 h-14 flex items-center justify-center rounded-full mb-4" style={{ background: 'rgba(245,158,66,0.08)' }}>
-                <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" stroke="#f59e42" strokeWidth="4" fill="none" opacity="0.2" />
-                  <path d="M12 2a10 10 0 0 1 10 10" stroke="#f59e42" strokeWidth="4" fill="none" strokeLinecap="round" />
-                </svg>
-              </div>
+              <LoadingCircular size="md" className="mb-4" />
               <span className="font-semibold text-xl" style={{ color: '#111827' }}>Encoding Video</span>
             </div>
             <p className="text-sm font-medium" style={{ color: '#6b7280' }}>

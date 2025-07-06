@@ -19,6 +19,17 @@ function getResolutionLabel(width?: number, height?: number): string {
   return `${width}x${height}`;
 }
 
+const SidebarStat: React.FC<{
+  icon: React.ElementType;
+  value: React.ReactNode;
+  className: string;
+}> = ({ icon: StatIcon, value, className }) => (
+  <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${className}`}>
+    <StatIcon className="w-2.5 h-2.5" />
+    {value}
+  </div>
+);
+
 export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({ 
   stepIndex, 
   currentStep, 
@@ -38,67 +49,34 @@ export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({
       case 'File Upload':
         return (
           <>
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700">
-              <Monitor className="w-2.5 h-2.5" />
-              {getResolutionLabel(summaryData.width, summaryData.height)}
-            </div>
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
-              <HardDrive className="w-2.5 h-2.5" />
-              {summaryData.size}
-            </div>
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
-              <Clock className="w-2.5 h-2.5" />
-              {summaryData.duration}s
-            </div>
+            <SidebarStat icon={Monitor} value={getResolutionLabel(summaryData.width, summaryData.height)} className="bg-green-50 text-green-700" />
+            <SidebarStat icon={HardDrive} value={summaryData.size} className="bg-purple-50 text-purple-700" />
+            <SidebarStat icon={Clock} value={`${summaryData.duration}s`} className="bg-blue-50 text-blue-700" />
           </>
         );
       case 'Encoding Finished':
         return (
           <>
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
-              <Clock className="w-2.5 h-2.5" />
-              {summaryData.duration}s
-            </div>
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-teal-50 text-teal-700">
-              <TrendingDown className="w-2.5 h-2.5" />
-              {summaryData.compression}%
-            </div>
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
-              <BarChart2 className="w-2.5 h-2.5" />
-              {summaryData.saved}MB
-            </div>
+            <SidebarStat icon={Clock} value={`${summaryData.duration}s`} className="bg-blue-50 text-blue-700" />
+            <SidebarStat icon={TrendingDown} value={`${summaryData.compression}%`} className="bg-teal-50 text-teal-700" />
+            <SidebarStat icon={BarChart2} value={`${summaryData.saved}MB`} className="bg-purple-50 text-purple-700" />
           </>
         );
       case 'Decoding Finished':
         return (
           <>
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
-              <Clock className="w-2.5 h-2.5" />
-              {summaryData.duration}s
-            </div>
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-orange-50 text-orange-600">
-              <Hash className="w-2.5 h-2.5" />
-              {summaryData.frames}f
-            </div>
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-50 text-yellow-700">
-              <Signal className="w-2.5 h-2.5" />
-              {summaryData.psnr}dB
-            </div>
+            <SidebarStat icon={Clock} value={`${summaryData.duration}s`} className="bg-blue-50 text-blue-700" />
+            <SidebarStat icon={Hash} value={`${summaryData.frames}f`} className="bg-orange-50 text-orange-600" />
+            <SidebarStat icon={Signal} value={`${summaryData.psnr}dB`} className="bg-yellow-50 text-yellow-700" />
           </>
         );
       case 'Process Images':
         return (
-          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-teal-50 text-teal-700">
-            <Image className="w-2.5 h-2.5" />
-            {summaryData.count} images
-          </div>
+          <SidebarStat icon={Image} value={`${summaryData.count} images`} className="bg-teal-50 text-teal-700" />
         );
       case 'Show Timestamps':
         return (
-          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-teal-50 text-teal-700">
-            <FileText className="w-2.5 h-2.5" />
-            {summaryData.count} screenshots
-          </div>
+          <SidebarStat icon={FileText} value={`${summaryData.count} screenshots`} className="bg-teal-50 text-teal-700" />
         );
       default:
         return null;

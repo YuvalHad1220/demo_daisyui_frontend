@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Zap, Clock, TrendingDown, BarChart2, ChevronDown, ChevronUp, FileText, Signal, HardDrive, Monitor } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
 import { FileInfoCard } from '../components/ui/FileInfoCard';
+import LoadingCircular from '../components/ui/LoadingCircular';
 import { useWorkflow } from '../hooks/useWorkflow';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const Step3EncodingFinished: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -13,12 +15,7 @@ const Step3EncodingFinished: React.FC = () => {
     return (
       <StageCard title="Video Encoding" icon={Zap}>
         <div className="flex flex-col items-center justify-center h-full py-12">
-          <div className="w-14 h-14 flex items-center justify-center rounded-full mb-4 animate-spin" style={{ background: 'rgba(245,158,66,0.08)' }}>
-            <svg width="32" height="32" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" stroke="#f59e42" strokeWidth="4" fill="none" opacity="0.2" />
-              <path d="M12 2a10 10 0 0 1 10 10" stroke="#f59e42" strokeWidth="4" fill="none" strokeLinecap="round" />
-            </svg>
-          </div>
+          <LoadingCircular size="md" className="mb-4" />
           <span className="font-semibold text-xl" style={{ color: '#111827' }}>Finalizing Encoding...</span>
         </div>
       </StageCard>
@@ -28,6 +25,11 @@ const Step3EncodingFinished: React.FC = () => {
   const { inputSize, outputSize, duration, psnr, compressionType, codec, bitrate } = encodingResult;
   const saved = (inputSize - outputSize).toFixed(2); // MB
   const compression = Math.round(((inputSize - outputSize) / inputSize) * 100);
+
+  const chartData = [
+    { name: 'Original', size: inputSize, color: '#ef4444' },
+    { name: 'Encoded', size: outputSize, color: '#14b8a6' },
+  ];
 
   return (
     <StageCard title="Video Encoding" icon={Zap}>
@@ -57,26 +59,21 @@ const Step3EncodingFinished: React.FC = () => {
       </div>
       {/* Bar Chart */}
       <div className="px-6 mt-8">
-        <div className="bg-gray-50 rounded-lg p-4 border" style={{ borderColor: '#e5e7eb' }}>
+        <div className="rounded-lg p-4 border" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
           <div className="font-semibold text-sm mb-3" style={{ color: '#374151' }}>Size Comparison</div>
-          <div className="flex items-end justify-between h-32 w-full relative" style={{ maxWidth: 400, margin: '0 auto' }}>
-            {/* Y axis grid */}
-            <div className="absolute left-0 top-0 w-full h-full z-0" style={{ pointerEvents: 'none' }}>
-              {[1,2,3,4,5].map(i => (
-                <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: `${(i-1)*25}%`, borderTop: '1px dashed #e5e7eb', height: 0 }} />
-              ))}
-            </div>
-            {/* Bars */}
-            <div className="flex flex-col items-center z-10 w-1/2">
-              <div style={{ height: `${inputSize * 4}px`, background: '#ef4444', width: 48, borderRadius: 12, transition: 'height 0.4s' }}></div>
-              <span className="text-xs mt-2 font-medium" style={{ color: '#ef4444' }}>Original</span>
-              <span className="text-xs" style={{ color: '#6b7280' }}>{inputSize} MB</span>
-            </div>
-            <div className="flex flex-col items-center z-10 w-1/2">
-              <div style={{ height: `${outputSize * 4}px`, background: '#14b8a6', width: 48, borderRadius: 12, transition: 'height 0.4s' }}></div>
-              <span className="text-xs mt-2 font-medium" style={{ color: '#14b8a6' }}>Encoded</span>
-              <span className="text-xs" style={{ color: '#6b7280' }}>{outputSize} MB</span>
-            </div>
+          <div style={{ width: '100%', height: 180, maxWidth: 400, margin: '0 auto' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical">
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} />
+                <Tooltip formatter={(value: number) => `${value} MB`} />
+                <Bar dataKey="size" radius={[8, 8, 8, 8]}>
+                  {chartData.map((entry, index) => (
+                    <Cell key={entry.name} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
@@ -93,29 +90,29 @@ const Step3EncodingFinished: React.FC = () => {
         </button>
         {showAdvanced && (
           <div className="mt-2 grid grid-cols-2 gap-4 animate-fade-in">
-            <div className="flex flex-col items-center p-3 rounded-lg border" style={{ background: '#fafafa', borderColor: '#e5e7eb' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-1" style={{ backgroundColor: '#f3f4f6' }}>
+            <div className="flex flex-col items-center p-3 rounded-lg border" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-1" style={{ backgroundColor: '#f7f5f3' }}>
                 <Signal className="w-2.5 h-2.5" style={{ color: '#6b7280' }} />
               </div>
               <span className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>PSNR</span>
               <span className="text-sm font-semibold" style={{ color: '#111827' }}>{psnr} dB</span>
             </div>
-            <div className="flex flex-col items-center p-3 rounded-lg border" style={{ background: '#fafafa', borderColor: '#e5e7eb' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-1" style={{ backgroundColor: '#f3f4f6' }}>
+            <div className="flex flex-col items-center p-3 rounded-lg border" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-1" style={{ backgroundColor: '#f7f5f3' }}>
                 <HardDrive className="w-2.5 h-2.5" style={{ color: '#6b7280' }} />
               </div>
               <span className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>Bitrate</span>
               <span className="text-sm font-semibold" style={{ color: '#111827' }}>{bitrate} Mbps</span>
             </div>
-            <div className="flex flex-col items-center p-3 rounded-lg border" style={{ background: '#fafafa', borderColor: '#e5e7eb' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-1" style={{ backgroundColor: '#f3f4f6' }}>
+            <div className="flex flex-col items-center p-3 rounded-lg border" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-1" style={{ backgroundColor: '#f7f5f3' }}>
                 <Monitor className="w-2.5 h-2.5" style={{ color: '#6b7280' }} />
               </div>
               <span className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>Compression Type</span>
               <span className="text-sm font-semibold" style={{ color: '#111827' }}>{compressionType}</span>
             </div>
-            <div className="flex flex-col items-center p-3 rounded-lg border" style={{ background: '#fafafa', borderColor: '#e5e7eb' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-1" style={{ backgroundColor: '#f3f4f6' }}>
+            <div className="flex flex-col items-center p-3 rounded-lg border" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-1" style={{ backgroundColor: '#f7f5f3' }}>
                 <BarChart2 className="w-2.5 h-2.5" style={{ color: '#6b7280' }} />
               </div>
               <span className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>Codec</span>
