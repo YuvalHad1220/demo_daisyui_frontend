@@ -1,19 +1,22 @@
 import React from 'react';
-import { useWorkflow } from '../hooks/useWorkflow';
 
 interface NavigationProps {
   currentStep: number;
   onPrevious: () => void;
   onNext: () => void;
+  isFirstStep: boolean;
+  isLastStep: boolean;
+  totalSteps: number;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ 
   currentStep, 
   onPrevious, 
-  onNext 
+  onNext,
+  isFirstStep,
+  isLastStep,
+  totalSteps
 }) => {
-  const { allSteps, isFirstStep, isLastStep } = useWorkflow();
-
   return (
     <div className="flex-shrink-0 pb-6 bg-gray-50 px-6">
       <div className="flex justify-between items-center">
@@ -31,10 +34,10 @@ export const Navigation: React.FC<NavigationProps> = ({
         {/* Progress indicator */}
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500 font-medium">
-            Step {currentStep + 1} of {allSteps.length}
+            Step {currentStep + 1} of {totalSteps}
           </span>
           <div className="flex items-center gap-1">
-            {allSteps.map((_, idx) => (
+            {Array.from({ length: totalSteps }, (_, idx) => (
               <div
                 key={idx}
                 className={`w-2 h-2 rounded-full transition-all duration-200 ${

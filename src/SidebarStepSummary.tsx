@@ -9,6 +9,16 @@ interface SidebarStepSummaryProps {
   icon: React.ElementType;
 }
 
+function getResolutionLabel(width?: number, height?: number): string {
+  if (!width || !height) return '--';
+  if (width === 7680 && height === 4320) return '8K UHD';
+  if (width === 3840 && height === 2160) return '4K UHD';
+  if (width === 2560 && height === 1440) return '2K QHD';
+  if (width === 1920 && height === 1080) return 'FHD';
+  if (width === 1280 && height === 720) return 'HD';
+  return `${width}x${height}`;
+}
+
 export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({ 
   stepIndex, 
   currentStep, 
@@ -30,7 +40,7 @@ export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({
           <>
             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700">
               <Monitor className="w-2.5 h-2.5" />
-              {summaryData.resolution}
+              {getResolutionLabel(summaryData.width, summaryData.height)}
             </div>
             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
               <HardDrive className="w-2.5 h-2.5" />

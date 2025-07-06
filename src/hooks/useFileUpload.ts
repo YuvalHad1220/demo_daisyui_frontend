@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 export interface UploadedFile {
   name: string;
@@ -108,7 +108,7 @@ export const useFileUpload = (): FileUploadHookReturn => {
     }
   }, []);
 
-  return {
+  const result = useMemo(() => ({
     loading,
     uploadState,
     uploadedFile,
@@ -117,5 +117,7 @@ export const useFileUpload = (): FileUploadHookReturn => {
     uploadFile,
     reset,
     updateVideoMetadata,
-  };
+  }), [loading, uploadState, uploadedFile, uploadProgress, error, uploadFile, reset, updateVideoMetadata]);
+
+  return result;
 }; 

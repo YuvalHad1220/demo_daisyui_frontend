@@ -1,19 +1,23 @@
 import React from 'react';
-import { useWorkflow } from '../hooks/useWorkflow';
+import type { StepConfig } from '../hooks/useWorkflow';
 
 interface MainContentProps {
   currentStep: number;
+  currentGroup: { label: string; steps: StepConfig[] };
+  currentStepLabel: string;
+  stepsInCurrentGroup: StepConfig[];
+  groupStartIndices: number[];
+  currentGroupIndex: number;
 }
 
-export const MainContent: React.FC<MainContentProps> = ({ currentStep }) => {
-  const { 
-    currentGroup, 
-    currentStepLabel, 
-    stepsInCurrentGroup, 
-    groupStartIndices, 
-    currentGroupIndex 
-  } = useWorkflow();
-
+export const MainContent: React.FC<MainContentProps> = ({ 
+  currentStep,
+  currentGroup,
+  currentStepLabel,
+  stepsInCurrentGroup,
+  groupStartIndices,
+  currentGroupIndex
+}) => {
   const groupStart = groupStartIndices[currentGroupIndex];
 
   return (

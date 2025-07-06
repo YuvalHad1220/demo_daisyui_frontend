@@ -1,15 +1,22 @@
 import React from 'react';
 import { SidebarStepSummary } from '../SidebarStepSummary';
-import { useWorkflow } from '../hooks/useWorkflow';
+import { StepGroup, StepSummary } from '../hooks/useWorkflow';
 
 interface SidebarProps {
   currentStep: number;
   onStepClick: (stepIndex: number) => void;
+  workflowConfig: StepGroup[];
+  stepSummaries: (StepSummary | null)[];
+  groupStartIndices: number[];
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentStep, onStepClick }) => {
-  const { workflowConfig, stepSummaries, groupStartIndices } = useWorkflow();
-
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  currentStep, 
+  onStepClick,
+  workflowConfig,
+  stepSummaries,
+  groupStartIndices
+}) => {
   return (
     <aside className="w-72 border-r border-gray-200 bg-white flex flex-col py-8 px-4">
       <div className="mb-8 pl-2">
