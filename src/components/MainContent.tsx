@@ -19,6 +19,7 @@ export const MainContent: React.FC<MainContentProps> = ({
   currentGroupIndex
 }) => {
   const groupStart = groupStartIndices[currentGroupIndex];
+  const numRenderedSteps = stepsInCurrentGroup.filter((_, idx) => (groupStart + idx) <= currentStep).length;
 
   return (
     <main className="flex-1 flex flex-col px-6 py-8">
@@ -26,7 +27,7 @@ export const MainContent: React.FC<MainContentProps> = ({
         <h1 className="text-2xl font-bold text-gray-900">{currentGroup.label}</h1>
         <p className="text-gray-500 text-sm mt-1">{currentStepLabel}</p>
       </header>
-      <section className="flex-1 flex flex-row items-center justify-center gap-2 overflow-x-auto">
+      <section className="flex-1 flex flex-row items-center justify-center gap-8 overflow-x-auto">
         {stepsInCurrentGroup.map((step, indexInGroup) => {
           const stepIdx = groupStart + indexInGroup;
           const isCompleted = stepIdx < currentStep;
@@ -41,8 +42,10 @@ export const MainContent: React.FC<MainContentProps> = ({
             <div 
               key={step.label} 
               className={`${
-                isCurrent 
-                  ? 'flex-1' 
+                numRenderedSteps === 1
+                  ? 'flex-1 max-w-[960px] min-w-[490px] mx-auto'
+                  : isCurrent
+                  ? 'flex-1'
                   : 'w-140 flex-shrink-0'
               } h-full min-w-0 relative transition-all duration-300`}
             >
