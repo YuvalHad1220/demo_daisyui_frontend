@@ -138,11 +138,14 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
         : null,
       null,
       null,
-      {
-        psnr: 38.2,
-        duration: 60,
-        frames: 1800,
-      },
+      decoding.decodingState === 'done' && decoding.decodingResult
+        ? {
+            psnr: decoding.decodingResult.psnr,
+            duration: decoding.decodingResult.duration,
+            frames: decoding.decodingResult.frameCount,
+            finished: true,
+          } as StepSummary
+        : null,
       null,
       null,
       {
@@ -153,7 +156,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
         count: 3,
       },
     ];
-  }, [fileUpload.uploadedFile, finished, encoding.encodingState, encoding.encodingResult]);
+  }, [fileUpload.uploadedFile, finished, encoding.encodingState, encoding.encodingResult, decoding.decodingState, decoding.decodingResult]);
 
   const allSteps = useMemo(() => workflowConfig.flatMap(group => group.steps), [workflowConfig]);
 

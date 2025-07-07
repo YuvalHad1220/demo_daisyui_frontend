@@ -67,6 +67,7 @@ export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({
           </>
         );
       case 'Decoding Finished':
+        if (!summaryData.duration || !summaryData.frames || !summaryData.psnr) return null;
         return (
           <>
             <SidebarStat icon={Clock} value={`${summaryData.duration}s`} className="bg-blue-50 text-blue-700" />
