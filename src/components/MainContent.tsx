@@ -21,12 +21,12 @@ export const MainContent: React.FC<MainContentProps> = ({
   const groupStart = groupStartIndices[currentGroupIndex];
 
   return (
-    <main className="flex-1 flex flex-col px-6 py-8" style={{ backgroundColor: '#f9fafb' }}>
+    <main className="flex-1 flex flex-col px-6 py-8">
       <header className="mb-8 border-b border-gray-200 pb-4">
         <h1 className="text-2xl font-bold text-gray-900">{currentGroup.label}</h1>
         <p className="text-gray-500 text-sm mt-1">{currentStepLabel}</p>
       </header>
-      <section className="flex-1 flex flex-row items-start gap-2 overflow-x-auto" style={{ minHeight: 0 }}>
+      <section className="flex-1 flex flex-row items-center justify-center gap-2 overflow-x-auto">
         {stepsInCurrentGroup.map((step, indexInGroup) => {
           const stepIdx = groupStart + indexInGroup;
           const isCompleted = stepIdx < currentStep;
@@ -43,7 +43,7 @@ export const MainContent: React.FC<MainContentProps> = ({
               className={`${
                 isCurrent 
                   ? 'flex-1' 
-                  : 'w-80 flex-shrink-0'
+                  : 'w-140 flex-shrink-0'
               } h-full min-w-0 relative transition-all duration-300`}
             >
               {/* Step content with reduced opacity for completed steps */}

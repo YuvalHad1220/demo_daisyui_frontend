@@ -25,6 +25,7 @@ const FileUploadWrapper: React.FC = () => {
 
   return (
     <FileUpload
+      className='max-w-[960px] min-w-[490px] mx-auto'
       accept="video/*"
       maxSizeMB={20}
       allowedTypes={['video/mp4']}

@@ -24,7 +24,7 @@ export const StageCard: React.FC<StageCardProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`w-full h-full p-6 ${className}`}>
+    <div className={`w-full h-full py-6 ${className}`}>
       <div 
         className="bg-white rounded-xl border shadow-sm h-full flex flex-col" 
         style={{ borderColor: '#e5e7eb' }}
