@@ -8,15 +8,17 @@ interface MainContentProps {
   stepsInCurrentGroup: StepConfig[];
   groupStartIndices: number[];
   currentGroupIndex: number;
+  onResetGroup: () => void;
 }
 
-export const MainContent: React.FC<MainContentProps> = ({ 
+export const MainContent: React.FC<MainContentProps> = ({
   currentStep,
   currentGroup,
   currentStepLabel,
   stepsInCurrentGroup,
   groupStartIndices,
-  currentGroupIndex
+  currentGroupIndex,
+  onResetGroup
 }) => {
   const groupStart = groupStartIndices[currentGroupIndex];
   const numRenderedSteps = stepsInCurrentGroup.filter((_, idx) => (groupStart + idx) <= currentStep).length;
@@ -38,6 +40,7 @@ export const MainContent: React.FC<MainContentProps> = ({
           if (isFuture) return null;
           
           const StepComponent = step.component;
+          const isFirstStepInGroup = indexInGroup === 0;
           return (
             <div 
               key={step.label} 
@@ -51,7 +54,7 @@ export const MainContent: React.FC<MainContentProps> = ({
             >
               {/* Step content with reduced opacity for completed steps */}
               <div className={`h-full ${isCompleted ? 'opacity-75 hover:opacity-90' : ''} transition-opacity duration-200`}>
-                <StepComponent />
+                <StepComponent onResetGroup={onResetGroup} isFirstStepInGroup={isFirstStepInGroup} />
               </div>
             </div>
           );

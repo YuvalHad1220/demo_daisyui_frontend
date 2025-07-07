@@ -22,6 +22,7 @@ export function AppContent() {
     currentStepLabel,
     stepsInCurrentGroup,
     currentGroupIndex,
+    resetGroup,
   } = useWorkflow();
 
   const handleStepClick = (stepIndex: number) => {
@@ -50,6 +51,7 @@ export function AppContent() {
           stepsInCurrentGroup={stepsInCurrentGroup}
           groupStartIndices={groupStartIndices}
           currentGroupIndex={currentGroupIndex}
+          onResetGroup={resetGroup}
         />
         <Navigation
           currentStep={currentStep}

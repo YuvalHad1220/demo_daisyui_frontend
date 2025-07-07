@@ -7,7 +7,7 @@ import EncodingInProgress from './Step2EncodingStarted/EncodingInProgress';
 import EncodingErrorState from './Step2EncodingStarted/EncodingErrorState';
 import EncodingDoneState from './Step2EncodingStarted/EncodingDoneState';
 
-const Step2EncodingStarted: React.FC = () => {
+const Step2EncodingStarted: React.FC<{ onResetGroup: () => void; isFirstStepInGroup: boolean }> = ({ onResetGroup, isFirstStepInGroup }) => {
   const { encoding } = useWorkflow();
   const {
     encodingState,
@@ -28,6 +28,7 @@ const Step2EncodingStarted: React.FC = () => {
   const handleReset = async () => {
     setResetting(true);
     await resetEncode();
+    onResetGroup();
     setResetting(false);
   };
 
@@ -35,7 +36,7 @@ const Step2EncodingStarted: React.FC = () => {
     <StageCard
       title="Encoding"
       icon={Play}
-      showReset={encodingState === 'done'}
+      showReset={isFirstStepInGroup}
       resetTitle="Reset Encoding"
       onResetClick={handleReset}
       resetting={resetting}

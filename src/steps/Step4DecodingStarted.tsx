@@ -7,7 +7,7 @@ import DecodingInProgress from './step4DecodingStarted/DecodingInProgress';
 import DecodingErrorState from './step4DecodingStarted/DecodingErrorState';
 import DecodingDoneState from './step4DecodingStarted/DecodingDoneState';
 
-const Step4DecodingStarted: React.FC = () => {
+const Step4DecodingStarted: React.FC<{ onResetGroup: () => void; isFirstStepInGroup: boolean }> = ({ onResetGroup, isFirstStepInGroup }) => {
   const { decoding } = useWorkflow();
   const {
     decodingState,
@@ -27,13 +27,14 @@ const Step4DecodingStarted: React.FC = () => {
 
   const handleReset = () => {
     resetDecode();
+    onResetGroup();
   };
 
   return (
     <StageCard
       title="Video Decoding & Playback"
       icon={Play}
-      showReset={decodingState === 'done'}
+      showReset={isFirstStepInGroup}
       resetTitle="Reset Video"
       onResetClick={handleReset}
     >

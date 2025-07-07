@@ -69,6 +69,7 @@ interface WorkflowContextType {
   markStepAsCompleted: (stepIndex: number) => void;
   getStepSummary: (stepIndex: number) => StepSummary | null;
   getCurrentStepSummary: () => StepSummary | null;
+  resetGroup: () => void;
   fileUpload: ReturnType<typeof useFileUpload>;
   encoding: ReturnType<typeof useEncoding>;
   decoding: ReturnType<typeof useDecoding>;
@@ -303,6 +304,22 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     return getStepSummary(currentStep);
   };
 
+  const resetGroup = () => {
+    const groupStart = groupStartIndices[currentGroupIndex];
+    const groupEnd = groupStart + currentGroup.steps.length;
+
+    setCompletedSteps(prev => {
+      const newCompleted = new Set(prev);
+      for (let i = groupStart; i < groupEnd; i++) {
+        if (i !== groupStart) {
+          newCompleted.delete(i);
+        }
+      }
+      return newCompleted;
+    });
+    setCurrentStep(groupStart);
+  };
+
   // Auto-mark steps as completed based on their state
   React.useEffect(() => {
     // Mark file upload as completed if it's finished
@@ -351,6 +368,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     encoding,
     decoding,
     toast,
+    resetGroup,
   };
 
   return (

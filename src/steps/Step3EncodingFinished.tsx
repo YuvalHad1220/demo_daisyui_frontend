@@ -7,28 +7,45 @@ import EncodingStats from './step3EncodingFinished/EncodingStats';
 import EncodingComparisonChart from './step3EncodingFinished/EncodingComparisonChart';
 import EncodingAdvancedDetails from './step3EncodingFinished/EncodingAdvancedDetails';
 
-const Step3EncodingFinished: React.FC = () => {
+const Step3EncodingFinished: React.FC<{ onResetGroup: () => void; isFirstStepInGroup: boolean }> = ({ onResetGroup, isFirstStepInGroup }) => {
   const { encoding } = useWorkflow();
-  const { encodingResult } = encoding;
+  const { encodingResult, resetEncode } = encoding;
+  const [resetting, setResetting] = React.useState(false);
 
-  if (!encodingResult) {
-    return <EncodingFinishedLoading />;
-  }
-
-  const { inputSize, outputSize, duration, psnr, compressionType, codec, bitrate } = encodingResult;
-  const saved = (inputSize - outputSize).toFixed(2);
-  const compression = Math.round(((inputSize - outputSize) / inputSize) * 100);
+  const handleReset = async () => {
+    setResetting(true);
+    await resetEncode();
+    onResetGroup();
+    setResetting(false);
+  };
 
   return (
-    <StageCard title="Video Encoding" icon={Zap}>
-      <EncodingStats duration={duration.toString()} compression={compression} saved={saved} />
-      <EncodingComparisonChart inputSize={inputSize} outputSize={outputSize} />
-      <EncodingAdvancedDetails
-        psnr={psnr.toFixed(1)}
-        bitrate={bitrate.toString()}
-        compressionType={compressionType}
-        codec={codec}
-      />
+    <StageCard
+      title="Video Encoding"
+      icon={Zap}
+      showReset={isFirstStepInGroup}
+      resetTitle="Reset Encoding"
+      onResetClick={handleReset}
+      resetting={resetting}
+    >
+      {!encodingResult ? (
+        <EncodingFinishedLoading />
+      ) : (
+        <>
+          <EncodingStats
+            duration={encodingResult.duration.toString()}
+            compression={Math.round(((encodingResult.inputSize - encodingResult.outputSize) / encodingResult.inputSize) * 100)}
+            saved={(encodingResult.inputSize - encodingResult.outputSize).toFixed(2)}
+          />
+          <EncodingComparisonChart inputSize={encodingResult.inputSize} outputSize={encodingResult.outputSize} />
+          <EncodingAdvancedDetails
+            psnr={encodingResult.psnr.toFixed(1)}
+            bitrate={encodingResult.bitrate.toString()}
+            compressionType={encodingResult.compressionType}
+            codec={encodingResult.codec}
+          />
+        </>
+      )}
     </StageCard>
   );
 };

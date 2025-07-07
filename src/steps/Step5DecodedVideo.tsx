@@ -6,7 +6,7 @@ import VideoPlayer from './step5DecodedVideo/VideoPlayer';
 import ScreenshotButton from './step5DecodedVideo/ScreenshotButton';
 import ScreenshotToast from './step5DecodedVideo/ScreenshotToast';
 
-const Step5DecodedVideo: React.FC = () => {
+const Step5DecodedVideo: React.FC<{ onResetGroup: () => void; isFirstStepInGroup: boolean }> = ({ onResetGroup, isFirstStepInGroup }) => {
   const [screenshotToast, setScreenshotToast] = useState(false);
   const [error, setError] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -100,6 +100,9 @@ const Step5DecodedVideo: React.FC = () => {
     <StageCard
       title="Video Decoding & Playback"
       icon={Play}
+      showReset={isFirstStepInGroup}
+      resetTitle="Reset Decoding"
+      onResetClick={onResetGroup}
     >
       {/* Hidden canvas for screenshot capture */}
       <canvas 

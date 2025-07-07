@@ -11,7 +11,7 @@ interface HoveredScreenshot {
   idx: number;
 }
 
-const Step10ShowTimestamps = () => {
+const Step10ShowTimestamps: React.FC<{ onResetGroup: () => void }> = ({ onResetGroup }) => {
   const [clicked, setClicked] = useState<number | null>(null);
   const [hoveredScreenshot, setHoveredScreenshot] = useState<HoveredScreenshot | null>(null);
 
@@ -28,7 +28,8 @@ const Step10ShowTimestamps = () => {
     searchState,
     searchError,
     jumpToTimestamp,
-    takeScreenshot
+    takeScreenshot,
+    resetSearch
   } = useScreenshotSearch();
 
   // Use the workflow toast system
@@ -78,10 +79,18 @@ const Step10ShowTimestamps = () => {
     }
   };
 
+  const handleReset = () => {
+    resetSearch();
+    onResetGroup();
+  };
+
   return (
     <StageCard
       title="Screenshot Timestamps"
       icon={Clock}
+      showReset={false}
+      resetTitle="Reset Screenshots"
+      onResetClick={handleReset}
     >
       <div className="px-6 py-8 flex-1 flex flex-col">
         <VideoPlayerSection

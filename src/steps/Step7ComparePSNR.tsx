@@ -7,7 +7,7 @@ import VideoPlayersGrid from './step7ComparePsnr/VideoPlayersGrid';
 import VideoControls from './step7ComparePsnr/VideoControls';
 import PsnrComparisonGraph from './step7ComparePsnr/PsnrComparisonGraph';
 
-const Step7ComparePSNR = () => {
+const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup: boolean }> = ({ onResetGroup, isFirstStepInGroup }) => {
   const videoRefs = {
     ours: useRef<HTMLVideoElement | null>(null),
     h264: useRef<HTMLVideoElement | null>(null),
@@ -28,17 +28,22 @@ const Step7ComparePSNR = () => {
     handleScrubberChange,
     handleVideoTimeUpdate,
     handleVideoLoadedMetadata,
-    handleReset,
+    handleReset: psnrComparisonReset,
     setError
   } = usePsnrComparison(videoRefs);
+
+  const handleResetClick = () => {
+    psnrComparisonReset();
+    onResetGroup();
+  };
 
   return (
     <StageCard
       title="Compare PSNR"
       icon={BarChart3}
-      showReset={allVideosLoaded}
+      showReset={isFirstStepInGroup}
       resetTitle="Reset Comparison"
-      onResetClick={handleReset}
+      onResetClick={handleResetClick}
     >
 
         {/* Error Display */}

@@ -2,7 +2,12 @@ import React, { useCallback, useState } from 'react';
 import { FileUpload } from '../../components/ui/FileUpload';
 import { useWorkflow } from '../../hooks/WorkflowContext';
 
-const FileUploadWrapper: React.FC = () => {
+interface FileUploadWrapperProps {
+  onResetGroup: () => void;
+  isFirstStepInGroup: boolean;
+}
+
+const FileUploadWrapper: React.FC<FileUploadWrapperProps> = ({ onResetGroup, isFirstStepInGroup }) => {
   const { fileUpload } = useWorkflow();
   const [resetting, setResetting] = useState(false);
 
@@ -20,8 +25,9 @@ const FileUploadWrapper: React.FC = () => {
   const handleReset = useCallback(async () => {
     setResetting(true);
     await fileUpload.reset();
+    onResetGroup(); // Call the resetGroup function passed from MainContent
     setResetting(false);
-  }, [fileUpload]);
+  }, [fileUpload, onResetGroup]);
 
   return (
     <FileUpload
@@ -36,6 +42,7 @@ const FileUploadWrapper: React.FC = () => {
       onFileSelect={handleFileUpload}
       onReset={handleReset}
       resetting={resetting}
+      showReset={isFirstStepInGroup}
     />
   );
 };

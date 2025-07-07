@@ -14,7 +14,7 @@ interface ScreenshotFile extends File {
   // You can extend with custom fields if needed
 }
 
-const Step8UploadScreenshots = () => {
+const Step8UploadScreenshots: React.FC<{ onResetGroup: () => void }> = ({ onResetGroup }) => {
   const [selectedFiles, setSelectedFiles] = useState<ScreenshotFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +24,7 @@ const Step8UploadScreenshots = () => {
   const [uploadDone, setUploadDone] = useState(false);
 
   // Use the screenshot search hook
-  const { startSearch, searchState, searchError, searchProgress } = useScreenshotSearch();
+  const { startSearch, searchState, searchError, searchProgress, resetSearch } = useScreenshotSearch();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []) as ScreenshotFile[];
@@ -49,14 +49,13 @@ const Step8UploadScreenshots = () => {
     setSelectedFiles((prev) => [...prev, ...validFiles]);
   };
 
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const handleClear = () => {
     setSelectedFiles([]);
     setError('');
     setProgress(0);
+    resetSearch();
+    setUploadDone(false);
+    onResetGroup();
   };
 
   const handleUpload = async () => {
