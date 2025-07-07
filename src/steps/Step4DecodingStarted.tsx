@@ -1,9 +1,11 @@
 import React from 'react';
-import { Play, RotateCcw, Check } from 'lucide-react';
-import { ErrorAlert } from '../components/ui/ErrorAlert';
+import { Play } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
-import { AppButton } from '../components/ui/AppButton';
 import { useWorkflow } from '../hooks/WorkflowContext';
+import DecodingInitialState from './step4DecodingStarted/DecodingInitialState';
+import DecodingInProgress from './step4DecodingStarted/DecodingInProgress';
+import DecodingErrorState from './step4DecodingStarted/DecodingErrorState';
+import DecodingDoneState from './step4DecodingStarted/DecodingDoneState';
 
 const Step4DecodingStarted: React.FC = () => {
   const { decoding } = useWorkflow();
@@ -35,70 +37,23 @@ const Step4DecodingStarted: React.FC = () => {
       resetTitle="Reset Video"
       onResetClick={handleReset}
     >
-      {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-6 py-8">
         {decodingState === 'initial' && (
-          <div className="flex flex-col items-center space-y-6 animate-fade-in">
-            <AppButton icon={<Play className="w-5 h-5" />} onClick={handleStartDecoding}>
-              Start Decoding
-            </AppButton>
-            <p className="text-sm" style={{ color: '#6b7280' }}>
-              Click to begin decoding your video for playback.
-            </p>
-          </div>
+          <DecodingInitialState onStartDecoding={handleStartDecoding} />
         )}
         {decodingState === 'decoding' && (
-          <div className="flex flex-col items-center space-y-6 animate-fade-in">
-            <div className="flex flex-col items-center mb-2">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'rgba(245,158,66,0.08)' }}>
-                <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" stroke="#f59e42" strokeWidth="4" fill="none" opacity="0.2" />
-                  <path d="M12 2a10 10 0 0 1 10 10" stroke="#f59e42" strokeWidth="4" fill="none" strokeLinecap="round" />
-                </svg>
-              </div>
-              <span className="mt-4 font-semibold text-xl" style={{ color: '#111827' }}>Decoding Video</span>
-            </div>
-            <div className="w-full max-w-md">
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className="h-3 rounded-full transition-all duration-300"
-                  style={{ background: 'linear-gradient(90deg, #f59e42 0%, #f97316 100%)', width: `${decodingProgress.progress}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-sm font-medium" style={{ color: '#6b7280' }}>
-                  {Math.round(decodingProgress.progress)}%
-                </span>
-                <span className="text-sm font-medium" style={{ color: '#6b7280' }}>
-                  {decodingProgress.eta}
-                </span>
-              </div>
-              <p className="text-xs mt-1" style={{ color: '#6b7280' }}>
-                Frame {decodingProgress.currentFrame}/{decodingProgress.totalFrames}
-              </p>
-            </div>
-          </div>
+          <DecodingInProgress
+            progress={decodingProgress.progress}
+            eta={decodingProgress.eta}
+            currentFrame={decodingProgress.currentFrame}
+            totalFrames={decodingProgress.totalFrames}
+          />
         )}
         {decodingState === 'error' && (
-          <div className="space-y-4 animate-shake">
-            <ErrorAlert title="Decoding Failed" message={decodingError} />
-            <AppButton onClick={handleRetry} className="w-full" style={{ color: '#374151', background: '#f3f4f6', border: '1px solid #d1d5db' }}>
-              Try Again
-            </AppButton>
-          </div>
+          <DecodingErrorState decodingError={decodingError} onRetry={handleRetry} />
         )}
         {decodingState === 'done' && (
-          <div className="flex flex-col items-center space-y-4 animate-fade-in">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#f0fdf4' }}>
-              <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
-            </div>
-            <p className="text-lg font-semibold" style={{ color: '#22c55e' }}>
-              Decoding Complete!
-            </p>
-            <p className="text-sm" style={{ color: '#6b7280' }}>
-              Your video has been successfully decoded and is ready for playback.
-            </p>
-          </div>
+          <DecodingDoneState />
         )}
       </div>
     </StageCard>

@@ -1,8 +1,10 @@
 import React, { useRef, useState } from 'react';
-import { Play, Camera } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
-import { AppButton } from '../components/ui/AppButton';
+import VideoPlayer from './step5DecodedVideo/VideoPlayer';
+import ScreenshotButton from './step5DecodedVideo/ScreenshotButton';
+import ScreenshotToast from './step5DecodedVideo/ScreenshotToast';
 
 const Step5DecodedVideo: React.FC = () => {
   const [screenshotToast, setScreenshotToast] = useState(false);
@@ -32,16 +34,12 @@ const Step5DecodedVideo: React.FC = () => {
     setDecodeFinished(true);
   };
 
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
-    }
+  const handleTimeUpdate = (time: number) => {
+    setCurrentTime(time);
   };
 
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration);
-    }
+  const handleLoadedMetadata = (dur: number) => {
+    setDuration(dur);
   };
 
   const takeScreenshot = () => {
@@ -98,26 +96,6 @@ const Step5DecodedVideo: React.FC = () => {
     }
   };
 
-  const formatTime = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  // Subtle badge style
-  const badgeStyle: React.CSSProperties = {
-    background: '#f3f4f6',
-    color: '#6b7280',
-    fontSize: 12,
-    fontWeight: 500,
-    padding: '2px 10px',
-    borderRadius: 8,
-    marginBottom: 8,
-    display: 'inline-block',
-    letterSpacing: 0.2,
-  };
-  const badgeText = isPlaying ? 'Decode in progress' : 'Decode finished';
-
   return (
     <StageCard
       title="Video Decoding & Playback"
@@ -136,47 +114,24 @@ const Step5DecodedVideo: React.FC = () => {
             <ErrorAlert title="Playback Error" message={error} />
           </div>
         )}
-        {/* Subtle Badge */}
-        <div className="w-full flex items-center" style={{ marginBottom: 4 }}>
-          <span style={badgeStyle}>{badgeText}</span>
-        </div>
-        {/* Video Player */}
-        <div className="w-full max-w-xl aspect-video bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border mb-2" style={{ borderColor: '#e5e7eb' }}>
-          <video
-            ref={videoRef}
-            src={decodedVideoUrl}
-            className="w-full h-full object-contain rounded-lg"
-            controls
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onEnded={handleEnded}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onError={() => setError('Failed to load video.')}
-            style={{ background: '#f9fafb' }}
-          />
-        </div>
-        {/* Timestamp (subtle, left-aligned, small) */}
-        <div className="w-full max-w-xl mb-6" style={{ textAlign: 'left' }}>
-          <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace', fontWeight: 400 }}>
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </span>
-        </div>
-        {/* Screenshot Button */}
-        <AppButton
-          icon={<Camera className="w-5 h-5" />}
+        <VideoPlayer
+          decodedVideoUrl={decodedVideoUrl}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onError={setError}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onEnded={handleEnded}
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          duration={duration}
+        />
+        <ScreenshotButton
           onClick={takeScreenshot}
-          className="mb-2"
           disabled={!!error || !decodedVideoUrl}
-        >
-          Take Screenshot
-        </AppButton>
-        {/* Screenshot Toast */}
+        />
         {screenshotToast && (
-          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white border rounded-lg shadow-lg px-6 py-3 flex items-center space-x-2 animate-fade-in z-[999]" style={{ borderColor: '#14b8a6', zIndex: 999 }}>
-            <Camera className="w-5 h-5" style={{ color: '#14b8a6' }} />
-            <span className="font-semibold text-sm" style={{ color: '#14b8a6' }}>Screenshot saved!</span>
-          </div>
+          <ScreenshotToast />
         )}
       </div>
     </StageCard>
