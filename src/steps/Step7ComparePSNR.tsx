@@ -1,22 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, BarChart3, Loader, ChevronDown, ChevronUp } from 'lucide-react';
 import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
 import { Tooltip } from '../components/ui/Tooltip';
+import { usePsnrComparison, videoUrls, codecNames, codecColors } from '../hooks/usePsnrComparison';
 
 const Step7ComparePSNR = () => {
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [currentTime, setCurrentTime] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(60);
-  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({
-    ours: true,
-    h264: true,
-    h265: true,
-    av1: true
-  });
-  const [error, setError] = useState<string>('');
-  const [showPSNRComparison, setShowPSNRComparison] = useState<boolean>(false);
-
   const videoRefs = {
     ours: useRef<HTMLVideoElement | null>(null),
     h264: useRef<HTMLVideoElement | null>(null),
@@ -24,112 +13,26 @@ const Step7ComparePSNR = () => {
     av1: useRef<HTMLVideoElement | null>(null)
   };
 
+  const {
+    psnrState,
+    error,
+    isPlaying,
+    currentTime,
+    duration,
+    loadingStates,
+    psnrData,
+    allVideosLoaded,
+    handlePlayPause,
+    handleSkip,
+    handleScrubberChange,
+    handleVideoTimeUpdate,
+    handleVideoLoadedMetadata,
+    handleReset,
+    setError
+  } = usePsnrComparison(videoRefs);
+
+  const [showPSNRComparison, setShowPSNRComparison] = useState<boolean>(false);
   const scrubberRef = useRef<HTMLInputElement | null>(null);
-
-  // Simulated video URLs for different codecs
-  const videoUrls: Record<string, string> = {
-    ours: 'https://www.w3schools.com/html/mov_bbb.mp4',
-    h264: 'https://www.w3schools.com/html/mov_bbb.mp4',
-    h265: 'https://www.w3schools.com/html/mov_bbb.mp4',
-    av1: 'https://www.w3schools.com/html/mov_bbb.mp4'
-  };
-
-  // Simulated PSNR data (real-time values)
-  const [psnrData, setPsnrData] = useState<Record<string, number>>({
-    ours: 42.3,
-    h264: 38.7,
-    h265: 41.2,
-    av1: 43.8
-  });
-
-  // Color scheme for codecs
-  const codecColors: Record<string, { bg: string; border: string; text: string }> = {
-    ours: { bg: '#14b8a6', border: '#0d9488', text: '#ffffff' },
-    h264: { bg: '#2563eb', border: '#1d4ed8', text: '#ffffff' },
-    h265: { bg: '#7c3aed', border: '#6d28d9', text: '#ffffff' },
-    av1: { bg: '#dc2626', border: '#b91c1c', text: '#ffffff' }
-  };
-
-  const codecNames: Record<string, string> = {
-    ours: 'Our Codec',
-    h264: 'H.264',
-    h265: 'H.265',
-    av1: 'AV1'
-  };
-
-  useEffect(() => {
-    // Simulate loading states
-    const timers = Object.keys(loadingStates).map((codec, index) => 
-      setTimeout(() => {
-        setLoadingStates(prev => ({ ...prev, [codec]: false }));
-      }, 1000 + index * 500)
-    );
-
-    return () => timers.forEach(timer => clearTimeout(timer));
-  }, []);
-
-  useEffect(() => {
-    // Update PSNR values in real-time
-    const interval = setInterval(() => {
-      if (isPlaying) {
-        setPsnrData(prev => ({
-          ours: prev.ours + (Math.random() - 0.5) * 0.5,
-          h264: prev.h264 + (Math.random() - 0.5) * 0.5,
-          h265: prev.h265 + (Math.random() - 0.5) * 0.5,
-          av1: prev.av1 + (Math.random() - 0.5) * 0.5
-        }));
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isPlaying]);
-
-  const handlePlayPause = () => {
-    const newPlayingState = !isPlaying;
-    setIsPlaying(newPlayingState);
-    Object.values(videoRefs).forEach(ref => {
-      if (ref.current) {
-        if (newPlayingState) {
-          ref.current.play();
-        } else {
-          ref.current.pause();
-        }
-      }
-    });
-  };
-
-  const handleSkip = (direction: 'forward' | 'backward') => {
-    const skipTime = direction === 'forward' ? 10 : -10;
-    const newTime = Math.max(0, Math.min(duration, currentTime + skipTime));
-    setCurrentTime(newTime);
-    Object.values(videoRefs).forEach(ref => {
-      if (ref.current) {
-        ref.current.currentTime = newTime;
-      }
-    });
-  };
-
-  const handleScrubberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value);
-    setCurrentTime(newTime);
-    Object.values(videoRefs).forEach(ref => {
-      if (ref.current) {
-        ref.current.currentTime = newTime;
-      }
-    });
-  };
-
-  const handleVideoTimeUpdate = () => {
-    if (videoRefs.ours.current) {
-      setCurrentTime(videoRefs.ours.current.currentTime);
-    }
-  };
-
-  const handleVideoLoadedMetadata = () => {
-    if (videoRefs.ours.current) {
-      setDuration(videoRefs.ours.current.duration);
-    }
-  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -143,34 +46,7 @@ const Step7ComparePSNR = () => {
     return '#ef4444';
   };
 
-  const handleReset = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setLoadingStates({
-      ours: true,
-      h264: true,
-      h265: true,
-      av1: true
-    });
-    setPsnrData({
-      ours: 42.3,
-      h264: 38.7,
-      h265: 41.2,
-      av1: 43.8
-    });
-    setError('');
-    setShowPSNRComparison(true);
-    
-    // Reset all video players
-    Object.values(videoRefs).forEach(ref => {
-      if (ref.current) {
-        ref.current.pause();
-        ref.current.currentTime = 0;
-      }
-    });
-  };
-
-  const allVideosLoaded = !Object.values(loadingStates).some(loading => loading);
+  
 
   return (
     <StageCard
