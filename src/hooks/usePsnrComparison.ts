@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo, useEffect, RefObject } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import type { RefObject } from 'react';
 
 export type PsnrComparisonState = 'loading' | 'ready' | 'error';
 
