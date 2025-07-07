@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Play, Camera, AlertCircle } from 'lucide-react';
+import { Play, Camera } from 'lucide-react';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
 import { AppButton } from '../components/ui/AppButton';
 
@@ -132,15 +133,7 @@ const Step5DecodedVideo: React.FC = () => {
       <div className="px-6 py-8">
         {error && (
           <div className="w-full mb-4 animate-shake">
-            <div className="flex items-start space-x-3 p-4 rounded-lg border" style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#fee2e2' }}>
-                <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
-              </div>
-              <div>
-                <p className="font-semibold" style={{ color: '#dc2626' }}>Playback Error</p>
-                <p className="text-sm" style={{ color: '#991b1b' }}>{error}</p>
-              </div>
-            </div>
+            <ErrorAlert title="Playback Error" message={error} />
           </div>
         )}
         {/* Subtle Badge */}

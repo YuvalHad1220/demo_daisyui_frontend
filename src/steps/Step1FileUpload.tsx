@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { UploadVideo } from '../components/ui/UploadVideo';
+import { FileUpload } from '../components/ui/FileUpload';
 import { useWorkflow } from '../hooks/useWorkflow';
 
 const Step1FileUpload: React.FC = () => {
@@ -26,7 +26,7 @@ const Step1FileUpload: React.FC = () => {
   }, [fileUpload]);
 
   return (
-    <UploadVideo
+    <FileUpload
       accept="video/*"
       maxSizeMB={20}
       allowedTypes={['video/mp4']}

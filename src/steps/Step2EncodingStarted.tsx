@@ -1,5 +1,6 @@
 import React from 'react';
-import { Play, AlertCircle, Check } from 'lucide-react';
+import { Play, Check } from 'lucide-react';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
 import LoadingCircular from '../components/ui/LoadingCircular';
 import { useWorkflow } from '../hooks/useWorkflow';
@@ -63,15 +64,7 @@ const Step2EncodingStarted: React.FC = () => {
         )}
         {encodingState === 'error' && (
           <div className="space-y-4 animate-shake">
-            <div className="flex items-start space-x-3 p-4 rounded-lg border" style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#fee2e2' }}>
-                <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
-              </div>
-              <div>
-                <p className="font-semibold" style={{ color: '#dc2626' }}>Encoding Failed</p>
-                <p className="text-sm" style={{ color: '#991b1b' }}>{encodingError}</p>
-              </div>
-            </div>
+            <ErrorAlert title="Encoding Failed" message={encodingError} />
             <AppButton onClick={handleRetry} className="w-full" style={{ color: '#374151', background: '#f3f4f6', border: '1px solid #d1d5db' }}>
               Try Again
             </AppButton>

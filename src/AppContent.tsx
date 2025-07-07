@@ -16,6 +16,7 @@ export function AppContent() {
     allSteps,
     workflowConfig,
     stepSummaries,
+    stepMetadata,
     groupStartIndices,
     currentGroup,
     currentStepLabel,
@@ -38,6 +39,7 @@ export function AppContent() {
         isStepCompleted={isStepCompleted}
         workflowConfig={workflowConfig}
         stepSummaries={stepSummaries}
+        stepMetadata={stepMetadata}
         groupStartIndices={groupStartIndices}
       />
       <div className="flex-1 flex flex-col">

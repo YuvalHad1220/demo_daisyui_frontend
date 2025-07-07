@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
-import { Upload, Video, Monitor, HardDrive, Clock, AlertCircle } from 'lucide-react';
+import { Upload, Video, Monitor, HardDrive, Clock } from 'lucide-react';
+import { ErrorAlert } from './ErrorAlert';
 import { StageCard } from './StageCard';
 import { StateLoader } from './StateLoader';
 import { FileInfoCard } from './FileInfoCard';
@@ -161,15 +162,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         {/* Error State */}
         {actualUploadState === 'error' && (
           <div className="space-y-4">
-            <div className="flex items-start space-x-3 p-4 rounded-lg border" style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#fee2e2' }}>
-                <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
-              </div>
-              <div>
-                <p className="font-semibold" style={{ color: '#dc2626' }}>Upload Failed</p>
-                <p className="text-sm" style={{ color: '#991b1b' }}>{actualError}</p>
-              </div>
-            </div>
+            <ErrorAlert title="Upload Failed" message={actualError} />
             <button
               onClick={onReset}
               className="w-full px-4 py-3 border rounded-lg text-sm font-semibold transition-colors hover:bg-gray-50 disabled:opacity-50"

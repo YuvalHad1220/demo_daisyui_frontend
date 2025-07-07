@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, BarChart3, AlertCircle, Loader, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, BarChart3, Loader, ChevronDown, ChevronUp } from 'lucide-react';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
 import { Tooltip } from '../components/ui/Tooltip';
 
@@ -182,14 +183,8 @@ const Step7ComparePSNR = () => {
 
         {/* Error Display */}
         {error && (
-          <div className="mx-6 mt-4 flex items-start space-x-3 p-4 rounded-lg border" style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca' }}>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#fee2e2' }}>
-              <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
-            </div>
-            <div>
-              <p className="font-semibold" style={{ color: '#dc2626' }}>Playback Error</p>
-              <p className="text-sm" style={{ color: '#991b1b' }}>{error}</p>
-            </div>
+          <div className="mx-6 mt-4">
+            <ErrorAlert title="Playback Error" message={error} />
           </div>
         )}
 

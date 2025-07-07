@@ -1,4 +1,4 @@
-import React from 'react';
+import { AppButton } from './ui/AppButton';
 
 interface NavigationProps {
   currentStep: number;
@@ -20,16 +20,16 @@ export const Navigation: React.FC<NavigationProps> = ({
   return (
     <div className="flex-shrink-0 pb-6 bg-gray-50 px-6">
       <div className="flex justify-between items-center">
-        <button
-          className="group flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-sm"
+        <AppButton
           onClick={onPrevious}
           disabled={isFirstStep}
+          className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
         >
           <svg className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Previous
-        </button>
+        </AppButton>
         
         {/* Progress indicator */}
         <div className="flex items-center gap-3">
@@ -52,18 +52,10 @@ export const Navigation: React.FC<NavigationProps> = ({
           </div>
         </div>
         
-        <button
-          className="group flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-white bg-teal-500 hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
+        <AppButton
           onClick={onNext}
           disabled={isLastStep}
-          style={{
-            background: isLastStep 
-              ? '#9ca3af' 
-              : 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-            boxShadow: isLastStep 
-              ? 'none' 
-              : '0 4px 6px -1px rgba(20, 184, 166, 0.15)'
-          }}
+          gradient={isLastStep ? '#9ca3af' : 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)'}
         >
           {isLastStep ? 'Complete' : 'Next'}
           {!isLastStep && (
@@ -71,7 +63,7 @@ export const Navigation: React.FC<NavigationProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           )}
-        </button>
+        </AppButton>
       </div>
     </div>
   );

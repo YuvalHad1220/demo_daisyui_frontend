@@ -13,7 +13,8 @@ import Step7ComparePSNR from '../steps/Step7ComparePSNR';
 import Step8UploadScreenshots from '../steps/Step8UploadScreenshots';
 import Step9ProcessImages from '../steps/Step9ProcessImages';
 import Step10ShowTimestamps from '../steps/Step10ShowTimestamps';
-import { Upload, Play, Zap, BarChart2, Video, Camera, CheckCircle, Image, Loader, BarChart3 } from 'lucide-react';
+import { SidebarStat } from '../components/ui/SidebarStat';
+import { Upload, Play, Zap, BarChart2, Video, Camera, CheckCircle, Image, Loader, BarChart3, Monitor, HardDrive, Clock, TrendingDown, Hash, Signal, FileText } from 'lucide-react';
 
 export interface StepConfig {
   label: string;
@@ -48,6 +49,7 @@ interface WorkflowContextType {
   workflowConfig: StepGroup[];
   allSteps: StepConfig[];
   stepSummaries: (StepSummary | null)[];
+  stepMetadata: (React.ReactNode | null)[];
   currentGroup: StepGroup;
   currentGroupIndex: number;
   currentStepLabel: string;
@@ -69,6 +71,16 @@ interface WorkflowContextType {
 }
 
 const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined);
+
+function getResolutionLabel(width?: number, height?: number): string {
+  if (!width || !height) return '--';
+  if (width === 7680 && height === 4320) return '8K UHD';
+  if (width === 3840 && height === 2160) return '4K UHD';
+  if (width === 2560 && height === 1440) return '2K QHD';
+  if (width === 1920 && height === 1080) return 'FHD';
+  if (width === 1280 && height === 720) return 'HD';
+  return `${width}x${height}`;
+}
 
 export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -159,6 +171,53 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   }, [fileUpload.uploadedFile, finished, encoding.encodingState, encoding.encodingResult, decoding.decodingState, decoding.decodingResult]);
 
   const allSteps = useMemo(() => workflowConfig.flatMap(group => group.steps), [workflowConfig]);
+
+  const stepMetadata = useMemo((): (React.ReactNode | null)[] => {
+    return allSteps.map((step, index) => {
+      const summary = stepSummaries[index];
+      if (!summary || !summary.finished) return null;
+
+      switch (step.label) {
+        case 'File Upload':
+          return (
+            <>
+              <SidebarStat icon={Monitor} value={getResolutionLabel(summary.width, summary.height)} className="bg-green-50 text-green-700" />
+              <SidebarStat icon={HardDrive} value={summary.size} className="bg-purple-50 text-purple-700" />
+              <SidebarStat icon={Clock} value={`${summary.duration}s`} className="bg-blue-50 text-blue-700" />
+            </>
+          );
+        case 'Encoding Finished':
+          if (!summary.inputSize || !summary.outputSize || !summary.duration) return null;
+          const compression = Math.round(((summary.inputSize - summary.outputSize) / summary.inputSize) * 100);
+          return (
+            <>
+              <SidebarStat icon={Clock} value={`${summary.duration}s`} className="bg-blue-50 text-blue-700" />
+              <SidebarStat icon={TrendingDown} value={`~${compression}%`} className="bg-teal-50 text-teal-700" />
+              <SidebarStat icon={BarChart2} value={`${summary.outputSize.toFixed(2)}MB`} className="bg-purple-50 text-purple-700" />
+            </>
+          );
+        case 'Decoding Finished':
+          if (!summary.duration || !summary.frames || !summary.psnr) return null;
+          return (
+            <>
+              <SidebarStat icon={Clock} value={`${summary.duration}s`} className="bg-blue-50 text-blue-700" />
+              <SidebarStat icon={Hash} value={`${summary.frames}f`} className="bg-orange-50 text-orange-600" />
+              <SidebarStat icon={Signal} value={`${summary.psnr}dB`} className="bg-yellow-50 text-yellow-700" />
+            </>
+          );
+        case 'Process Images':
+          return (
+            <SidebarStat icon={Image} value={`${summary.count} images`} className="bg-teal-50 text-teal-700" />
+          );
+        case 'Show Timestamps':
+          return (
+            <SidebarStat icon={FileText} value={`${summary.count} screenshots`} className="bg-teal-50 text-teal-700" />
+          );
+        default:
+          return null;
+      }
+    });
+  }, [allSteps, stepSummaries]);
 
   const groupStartIndices = useMemo(() => {
     let idx = 0;
@@ -258,6 +317,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     workflowConfig,
     allSteps,
     stepSummaries,
+    stepMetadata,
     currentGroup,
     currentGroupIndex,
     currentStepLabel,

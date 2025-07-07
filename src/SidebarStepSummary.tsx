@@ -5,90 +5,24 @@ interface SidebarStepSummaryProps {
   stepIndex: number;
   currentStep: number;
   stepLabel: string;
-  summaryData?: any; // shape depends on step
   icon: React.ElementType;
   isStepCompleted: (stepIndex: number) => boolean;
+  metadata: React.ReactNode;
 }
 
-function getResolutionLabel(width?: number, height?: number): string {
-  if (!width || !height) return '--';
-  if (width === 7680 && height === 4320) return '8K UHD';
-  if (width === 3840 && height === 2160) return '4K UHD';
-  if (width === 2560 && height === 1440) return '2K QHD';
-  if (width === 1920 && height === 1080) return 'FHD';
-  if (width === 1280 && height === 720) return 'HD';
-  return `${width}x${height}`;
-}
 
-const SidebarStat: React.FC<{
-  icon: React.ElementType;
-  value: React.ReactNode;
-  className: string;
-}> = ({ icon: StatIcon, value, className }) => (
-  <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${className}`}>
-    <StatIcon className="w-2.5 h-2.5" />
-    {value}
-  </div>
-);
 
 export const SidebarStepSummary: React.FC<SidebarStepSummaryProps> = ({ 
   stepIndex, 
   currentStep, 
   stepLabel, 
-  summaryData, 
   icon: Icon,
-  isStepCompleted
+  isStepCompleted,
+  metadata
 }) => {
   const isCompleted = isStepCompleted(stepIndex);
   const isCurrent = stepIndex === currentStep;
   const isFuture = stepIndex > currentStep;
-
-  // Render compact metadata with small icons using README color guidelines
-  const renderMetadata = () => {
-    if (!summaryData) return null;
-    if (!summaryData.finished) return null;
-    switch (stepLabel) {
-      case 'File Upload':
-        return (
-          <>
-            <SidebarStat icon={Monitor} value={getResolutionLabel(summaryData.width, summaryData.height)} className="bg-green-50 text-green-700" />
-            <SidebarStat icon={HardDrive} value={summaryData.size} className="bg-purple-50 text-purple-700" />
-            <SidebarStat icon={Clock} value={`${summaryData.duration}s`} className="bg-blue-50 text-blue-700" />
-          </>
-        );
-      case 'Encoding Finished':
-        if (!summaryData.inputSize || !summaryData.outputSize || !summaryData.duration) return null;
-        const compression = Math.round(((summaryData.inputSize - summaryData.outputSize) / summaryData.inputSize) * 100);
-        return (
-          <>
-            <SidebarStat icon={Clock} value={`${summaryData.duration}s`} className="bg-blue-50 text-blue-700" />
-            <SidebarStat icon={TrendingDown} value={`~${compression}%`} className="bg-teal-50 text-teal-700" />
-            <SidebarStat icon={BarChart2} value={`${summaryData.outputSize.toFixed(2)}MB`} className="bg-purple-50 text-purple-700" />
-          </>
-        );
-      case 'Decoding Finished':
-        if (!summaryData.duration || !summaryData.frames || !summaryData.psnr) return null;
-        return (
-          <>
-            <SidebarStat icon={Clock} value={`${summaryData.duration}s`} className="bg-blue-50 text-blue-700" />
-            <SidebarStat icon={Hash} value={`${summaryData.frames}f`} className="bg-orange-50 text-orange-600" />
-            <SidebarStat icon={Signal} value={`${summaryData.psnr}dB`} className="bg-yellow-50 text-yellow-700" />
-          </>
-        );
-      case 'Process Images':
-        return (
-          <SidebarStat icon={Image} value={`${summaryData.count} images`} className="bg-teal-50 text-teal-700" />
-        );
-      case 'Show Timestamps':
-        return (
-          <SidebarStat icon={FileText} value={`${summaryData.count} screenshots`} className="bg-teal-50 text-teal-700" />
-        );
-      default:
-        return null;
-    }
-  };
-
-  const metadata = renderMetadata();
 
   return (
       <div

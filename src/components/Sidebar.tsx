@@ -9,6 +9,7 @@ interface SidebarProps {
   isStepCompleted: (stepIndex: number) => boolean;
   workflowConfig: StepGroup[];
   stepSummaries: (StepSummary | null)[];
+  stepMetadata: (React.ReactNode | null)[];
   groupStartIndices: number[];
 }
 
@@ -19,6 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isStepCompleted,
   workflowConfig,
   stepSummaries,
+  stepMetadata,
   groupStartIndices
 }) => {
   return (
@@ -50,9 +52,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       stepIndex={stepIdx}
                       currentStep={currentStep}
                       stepLabel={step.label}
-                      summaryData={stepSummaries[stepIdx]}
                       icon={step.icon}
                       isStepCompleted={isStepCompleted}
+                      metadata={stepMetadata[stepIdx]}
                     />
                   </div>
                 );
