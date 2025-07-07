@@ -1,5 +1,5 @@
 import React from 'react';
-import type { StepConfig } from '../hooks/useWorkflow';
+import type { StepConfig } from '../hooks/WorkflowContext';
 
 interface MainContentProps {
   currentStep: number;

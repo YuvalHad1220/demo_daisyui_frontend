@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { FileUpload } from '../components/ui/FileUpload';
-import { useWorkflow } from '../hooks/useWorkflow';
+import { useWorkflow } from '../hooks/WorkflowContext';
 
 const Step1FileUpload: React.FC = () => {
   const { fileUpload } = useWorkflow();

@@ -3,7 +3,7 @@ import { Play, Check } from 'lucide-react';
 import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
 import LoadingCircular from '../components/ui/LoadingCircular';
-import { useWorkflow } from '../hooks/useWorkflow';
+import { useWorkflow } from '../hooks/WorkflowContext';
 import { AppButton } from '../components/ui/AppButton';
 
 const Step2EncodingStarted: React.FC = () => {

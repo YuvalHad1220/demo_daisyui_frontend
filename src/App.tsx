@@ -1,4 +1,4 @@
-import { WorkflowProvider } from './hooks/useWorkflow';
+import { WorkflowProvider } from './hooks/WorkflowContext';
 import { AppContent } from './AppContent';
 
 function App() {

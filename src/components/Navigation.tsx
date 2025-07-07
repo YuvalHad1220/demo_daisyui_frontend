@@ -54,13 +54,17 @@ export const Navigation: React.FC<NavigationProps> = ({
         
         <AppButton
           onClick={onNext}
-          disabled={isLastStep}
-          gradient={isLastStep ? '#9ca3af' : 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)'}
+          gradient={isLastStep ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)'}
         >
           {isLastStep ? 'Complete' : 'Next'}
           {!isLastStep && (
             <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          )}
+          {isLastStep && (
+            <svg className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           )}
         </AppButton>

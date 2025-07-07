@@ -3,7 +3,7 @@ import { Zap, Clock, TrendingDown, BarChart2, ChevronDown, ChevronUp, FileText, 
 import { StageCard } from '../components/ui/StageCard';
 import { FileInfoCard } from '../components/ui/FileInfoCard';
 import LoadingCircular from '../components/ui/LoadingCircular';
-import { useWorkflow } from '../hooks/useWorkflow';
+import { useWorkflow } from '../hooks/WorkflowContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { AppButton } from '../components/ui/AppButton';
 

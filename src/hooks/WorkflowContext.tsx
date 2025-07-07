@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { useFileUpload } from './useFileUpload';
 import { useEncoding } from './useEncoding';
 import { useDecoding } from './useDecoding';
+import { useToast } from './useToast';
+import ToastContainer from '../components/ui/ToastContainer';
 import Step1FileUpload from '../steps/Step1FileUpload';
 import Step2EncodingStarted from '../steps/Step2EncodingStarted';
 import Step3EncodingFinished from '../steps/Step3EncodingFinished';
@@ -40,6 +42,8 @@ export interface StepSummary {
   width?: number;
   height?: number;
   finished?: boolean;
+  inputSize?: number;
+  outputSize?: number;
 }
 
 interface WorkflowContextType {
@@ -68,6 +72,7 @@ interface WorkflowContextType {
   fileUpload: ReturnType<typeof useFileUpload>;
   encoding: ReturnType<typeof useEncoding>;
   decoding: ReturnType<typeof useDecoding>;
+  toast: ReturnType<typeof useToast>;
 }
 
 const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined);
@@ -88,6 +93,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const fileUpload = useFileUpload();
   const encoding = useEncoding();
   const decoding = useDecoding();
+  const toast = useToast();
 
   const workflowConfig = useMemo((): StepGroup[] => [
     {
@@ -266,6 +272,13 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     if (!isLastStep) {
       markStepAsCompleted(currentStep);
       setCurrentStep(currentStep + 1);
+    } else {
+      markStepAsCompleted(currentStep);
+      toast.showSuccess(
+        'Workflow Complete!',
+        'All steps have been successfully completed. Your video processing workflow is finished.',
+        6000
+      );
     }
   };
 
@@ -278,6 +291,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const markStepAsCompleted = (stepIndex: number) => {
+    console.log('markStepAsCompleted', stepIndex);
     setCompletedSteps(prev => new Set([...prev, stepIndex]));
   };
 
@@ -336,11 +350,13 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     fileUpload,
     encoding,
     decoding,
+    toast,
   };
 
   return (
     <WorkflowContext.Provider value={value}>
       {children}
+      <ToastContainer />
     </WorkflowContext.Provider>
   );
 };

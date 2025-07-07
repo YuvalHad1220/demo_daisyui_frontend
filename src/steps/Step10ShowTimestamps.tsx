@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Clock, AlertCircle, Camera } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
 import { useScreenshotSearch } from '../hooks/useScreenshotSearch';
+import { useWorkflow } from '../hooks/WorkflowContext';
 
 interface HoveredScreenshot {
   shot: any;
@@ -10,7 +11,6 @@ interface HoveredScreenshot {
 
 const Step10ShowTimestamps = () => {
   const [clicked, setClicked] = useState<number | null>(null);
-  const [toast, setToast] = useState('');
   const [hoveredScreenshot, setHoveredScreenshot] = useState<HoveredScreenshot | null>(null);
 
   // Video player state
@@ -28,6 +28,9 @@ const Step10ShowTimestamps = () => {
     jumpToTimestamp, 
     takeScreenshot 
   } = useScreenshotSearch();
+
+  // Use the workflow toast system
+  const { toast } = useWorkflow();
 
   // Get screenshots from search result
   const screenshots = searchResult?.matches || [];
@@ -47,11 +50,10 @@ const Step10ShowTimestamps = () => {
   const handleScreenshot = async () => {
     try {
       await takeScreenshot();
-      setToast('Screenshot saved!');
-      setTimeout(() => setToast(''), 1800);
+      toast.showSuccess('Screenshot saved!', 'Your screenshot has been successfully captured.');
     } catch (error) {
       console.error('Failed to take screenshot:', error);
-      setToast('Failed to take screenshot');
+      toast.showError('Screenshot failed', 'Failed to capture screenshot. Please try again.');
     }
   };
 
@@ -63,8 +65,7 @@ const Step10ShowTimestamps = () => {
 
   const handleTimestampClick = async (idx: number, ts: string) => {
     setClicked(idx);
-    setToast(`Jumped to ${ts}`);
-    setTimeout(() => setToast(''), 1200);
+    toast.showInfo(`Jumped to ${ts}`, 'Video position updated successfully.');
     
     try {
       await jumpToTimestamp(ts);
@@ -77,7 +78,7 @@ const Step10ShowTimestamps = () => {
       }
     } catch (error) {
       console.error('Failed to jump to timestamp:', error);
-      setToast('Failed to jump to timestamp');
+      toast.showError('Navigation failed', 'Failed to jump to timestamp. Please try again.');
     }
   };
 
@@ -205,14 +206,6 @@ const Step10ShowTimestamps = () => {
                 </button>
               </div>
             ))}
-          </div>
-        )}
-        
-        {/* Toast */}
-        {toast && (
-          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 border rounded-lg shadow-lg px-6 py-3 flex items-center space-x-2 animate-fade-in" style={{ background: '#fdfcfb', borderColor: '#14b8a6', zIndex: 50 }}>
-            <Clock className="w-5 h-5" style={{ color: '#14b8a6' }} />
-            <span className="font-semibold text-sm" style={{ color: '#14b8a6' }}>{toast}</span>
           </div>
         )}
       </div>

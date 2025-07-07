@@ -1,7 +1,7 @@
 import { Sidebar } from './components/Sidebar';
 import { MainContent } from './components/MainContent';
 import { Navigation } from './components/Navigation';
-import { useWorkflow } from './hooks/useWorkflow';
+import { useWorkflow } from './hooks/WorkflowContext';
 
 export function AppContent() {
   const {

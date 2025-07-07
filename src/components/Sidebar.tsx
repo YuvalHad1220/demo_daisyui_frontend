@@ -1,6 +1,6 @@
 import React from 'react';
 import { SidebarStepSummary } from '../SidebarStepSummary';
-import type { StepGroup, StepSummary } from '../hooks/useWorkflow';
+import type { StepGroup, StepSummary } from '../hooks/WorkflowContext';
 
 interface SidebarProps {
   currentStep: number;
