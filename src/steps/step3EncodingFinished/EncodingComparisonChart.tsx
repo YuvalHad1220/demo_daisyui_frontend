@@ -18,8 +18,8 @@ const EncodingComparisonChart: React.FC<EncodingComparisonChartProps> = ({ input
         <div className="font-semibold text-sm mb-3" style={{ color: '#374151' }}>Size Comparison</div>
         <div style={{ width: '100%', height: 180, maxWidth: 400, margin: '0 auto' }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} layout="vertical">
-              <XAxis type="number" hide />
+          <BarChart data={chartData} layout="vertical" margin={{ left: 60 }}>
+            <XAxis type="number" hide />
               <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} />
               <Tooltip formatter={(value: number) => `${value} MB`} />
               <Bar dataKey="size" radius={[8, 8, 8, 8]}>
