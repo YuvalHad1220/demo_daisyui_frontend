@@ -92,7 +92,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const fileUpload = useFileUpload();
-  const encoding = useEncoding();
+  const encoding = useEncoding(fileUpload.uploadedFile?.name || '', fileUpload.uploadedFile?.size || 0);
   const decoding = useDecoding();
   const toast = useToast();
 

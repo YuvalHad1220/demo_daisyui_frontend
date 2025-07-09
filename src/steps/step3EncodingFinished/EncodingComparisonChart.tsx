@@ -11,7 +11,7 @@ const EncodingComparisonChart: React.FC<EncodingComparisonChartProps> = ({ input
     { name: 'Original', size: inputSize, color: '#ef4444' },
     { name: 'Encoded', size: outputSize, color: '#14b8a6' },
   ];
-
+  console.log(inputSize, outputSize)
   return (
     <div className="px-6 mt-8">
       <div className="rounded-lg p-4 border" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>

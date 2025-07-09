@@ -25,7 +25,7 @@ interface FileUploadHookReturn {
   error: string;
   uploadFile: (file: File) => Promise<void>;
   reset: () => Promise<void>;
-  updateVideoMetadata: (duration?: number, width?: number, height?: number) => Promise<void>;
+  updateVideoMetadata: (duration?: number, width?: number, height?: number) => void;
   finished: boolean;
 }
 
@@ -43,13 +43,6 @@ export const useFileUpload = (): FileUploadHookReturn => {
   const [uploadProgress, setUploadProgress] = useState<number>(initialState.uploadProgress);
   const [error, setError] = useState<string>(initialState.error);
 
-  
-
-  // Simulate backend API
-  const fakeApi = async (data: any, ms = 600) => {
-    await new Promise(res => setTimeout(res, ms));
-    return data;
-  };
 
   const uploadFile = useCallback(async (file: File) => {
     setLoading(true);
@@ -117,19 +110,13 @@ export const useFileUpload = (): FileUploadHookReturn => {
     }
   }, []);
 
-  const updateVideoMetadata = useCallback(async (duration?: number, width?: number, height?: number) => {
-    setLoading(true);
-    try {
-      await fakeApi(null, 200);
-      setUploadedFile(prev => prev ? {
-        ...prev,
-        ...(duration !== undefined && { duration }),
-        ...(width !== undefined && { width }),
-        ...(height !== undefined && { height })
-      } : null);
-    } finally {
-      setLoading(false);
-    }
+  const updateVideoMetadata = useCallback((duration?: number, width?: number, height?: number) => {
+    setUploadedFile(prev => prev ? {
+      ...prev,
+      ...(duration !== undefined && { duration }),
+      ...(width !== undefined && { width }),
+      ...(height !== undefined && { height })
+    } : null);
   }, []);
 
   const finished =

@@ -33,16 +33,20 @@ const Step3EncodingFinished: React.FC<{ onResetGroup: () => void; isFirstStepInG
       ) : (
         <>
           <EncodingStats
-            duration={encodingResult.duration.toString()}
-            compression={Math.round(((encodingResult.inputSize - encodingResult.outputSize) / encodingResult.inputSize) * 100)}
-            saved={(encodingResult.inputSize - encodingResult.outputSize).toFixed(2)}
+            datasetCreationTime={encodingResult.datasetCreationTimeS || 0}
+            compressionRatio={encodingResult.compressionRatio || 0}
+            psnr={encodingResult.psnr || 0}
           />
           <EncodingComparisonChart inputSize={encodingResult.inputSize} outputSize={encodingResult.outputSize} />
           <EncodingAdvancedDetails
-            psnr={encodingResult.psnr.toFixed(1)}
-            bitrate={encodingResult.bitrate.toString()}
-            compressionType={encodingResult.compressionType}
-            codec={encodingResult.codec}
+            bitrate={encodingResult.bitrate || 0}
+            method={encodingResult.method || 'Unknown'}
+            deviceUsed={encodingResult.deviceUsed || 'CPU'}
+            memoryUsageBytes={encodingResult.memoryUsageBytes || 0}
+            videoFrames={encodingResult.videoFrames || 0}
+            fps={encodingResult.fps || 0}
+            validSequences={encodingResult.validSequences || 0}
+            duration={encodingResult.duration || 0}
           />
         </>
       )}

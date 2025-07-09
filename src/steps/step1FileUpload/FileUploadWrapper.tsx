@@ -16,8 +16,8 @@ const FileUploadWrapper: React.FC<FileUploadWrapperProps> = ({ onResetGroup, isF
     if (file.type.startsWith('video/')) {
       const video = document.createElement('video');
       video.src = URL.createObjectURL(file);
-      video.onloadedmetadata = async () => {
-        await fileUpload.updateVideoMetadata(video.duration, video.videoWidth, video.videoHeight);
+      video.onloadedmetadata = () => {
+        fileUpload.updateVideoMetadata(video.duration, video.videoWidth, video.videoHeight);
       };
     }
   }, [fileUpload]);
@@ -32,17 +32,16 @@ const FileUploadWrapper: React.FC<FileUploadWrapperProps> = ({ onResetGroup, isF
   return (
     <FileUpload
       accept="video/*"
-      maxSizeMB={20}
+      maxSizeMB={50}
       allowedTypes={['video/mp4']}
       title={fileUpload.uploadedFile ? fileUpload.uploadedFile.name : 'Video Upload'}
-      sizeText="Supports MP4 • Maximum 20MB"
+      sizeText="Supports MP4 • Maximum 50MB"
       videoFile={fileUpload.uploadedFile}
       currentUploadState={fileUpload.uploadState}
       currentError={fileUpload.error}
       onFileSelect={handleFileUpload}
       onReset={handleReset}
       resetting={resetting}
-      showReset={isFirstStepInGroup}
     />
   );
 };

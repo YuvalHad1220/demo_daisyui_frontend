@@ -42,7 +42,7 @@ export interface FileUploadProps {
 
 export const FileUpload: React.FC<FileUploadProps> = ({
   accept = "video/*",
-  maxSizeMB = 20,
+  maxSizeMB = 50,
   allowedTypes = ['video/mp4'],
   title = "Video Upload",
   buttonText = "Upload Video",
@@ -66,8 +66,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const resetTitle = 'Change Video';
 
   const validateFile = useCallback((file: File): string | null => {
-    if (allowedTypes && !allowedTypes.includes(file.type)) {
-      return `File type not supported. Allowed types: ${allowedTypes.join(', ')}`;
+    // More flexible validation for MP4 files
+    const isMP4 = file.type === 'video/mp4' || 
+                  file.type === 'video/x-mp4' || 
+                  file.name.toLowerCase().endsWith('.mp4') ||
+                  file.type === 'application/octet-stream' && file.name.toLowerCase().endsWith('.mp4');
+    
+    if (allowedTypes && !isMP4) {
+      return `File type not supported. Please upload an MP4 file.`;
     }
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
     if (file.size > maxSizeBytes) {

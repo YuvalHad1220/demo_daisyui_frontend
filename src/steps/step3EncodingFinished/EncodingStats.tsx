@@ -3,33 +3,33 @@ import { Clock, TrendingDown, BarChart2 } from 'lucide-react';
 import { FileInfoCard } from '../../components/ui/FileInfoCard';
 
 interface EncodingStatsProps {
-  duration: string;
-  compression: number;
-  saved: string;
+  datasetCreationTime: number;
+  compressionRatio: number;
+  psnr: number;
 }
 
-const EncodingStats: React.FC<EncodingStatsProps> = ({ duration, compression, saved }) => (
+const EncodingStats: React.FC<EncodingStatsProps> = ({ datasetCreationTime, compressionRatio, psnr }) => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-6 mt-6">
     <FileInfoCard
       icon={Clock}
       iconColor="#2563eb"
       backgroundColor="#dbeafe"
-      label="Duration"
-      value={`${duration}s`}
+      label="Processing Time"
+      value={`${datasetCreationTime.toFixed(1)}s`}
     />
     <FileInfoCard
       icon={TrendingDown}
       iconColor="#14b8a6"
       backgroundColor="#f0fdfa"
-      label="Compression"
-      value={`${compression}.0%`}
+      label="Compression Ratio"
+      value={`${compressionRatio.toFixed(1)}x`}
     />
     <FileInfoCard
       icon={BarChart2}
       iconColor="#7c3aed"
       backgroundColor="#faf5ff"
-      label="Saved"
-      value={`${saved} MB`}
+      label="PSNR (estimated)"
+      value={`${psnr.toFixed(1)} dB`}
     />
   </div>
 );

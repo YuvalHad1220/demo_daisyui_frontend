@@ -12,6 +12,8 @@ const Step2EncodingStarted: React.FC<{ onResetGroup: () => void; isFirstStepInGr
   const {
     encodingState,
     encodingError,
+    progress,
+    eta,
     startEncode,
     resetEncode,
   } = encoding;
@@ -46,7 +48,7 @@ const Step2EncodingStarted: React.FC<{ onResetGroup: () => void; isFirstStepInGr
           <EncodingInitialState onStartEncoding={handleStartEncoding} />
         )}
         {encodingState === 'encoding' && (
-          <EncodingInProgress />
+          <EncodingInProgress progress={progress} eta={eta} />
         )}
         {encodingState === 'error' && (
           <EncodingErrorState encodingError={encodingError} onRetry={handleRetry} />
