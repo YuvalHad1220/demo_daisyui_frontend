@@ -1,4 +1,5 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import Hls from 'hls.js';
 
 interface VideoPlayerProps {
   decodedVideoUrl: string;
@@ -11,6 +12,7 @@ interface VideoPlayerProps {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  videoRef?: React.RefObject<HTMLVideoElement | null>;
 }
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -24,8 +26,27 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   isPlaying,
   currentTime,
   duration,
+  videoRef: externalVideoRef,
 }) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const internalVideoRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = externalVideoRef || internalVideoRef;
+
+  // HLS setup
+  useEffect(() => {
+    if (decodedVideoUrl && decodedVideoUrl.endsWith('.m3u8') && videoRef.current) {
+      if (Hls.isSupported()) {
+        const hls = new Hls({ debug: true });
+        hls.loadSource(decodedVideoUrl);
+        hls.attachMedia(videoRef.current);
+
+        return () => {
+          hls?.destroy();
+        };
+      } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+        videoRef.current.src = decodedVideoUrl;
+      }
+    }
+  }, [decodedVideoUrl, videoRef]);
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
@@ -56,17 +77,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     display: 'inline-block',
     letterSpacing: 0.2,
   };
-  const badgeText = isPlaying ? 'Decode in progress' : 'Decode finished';
 
   return (
     <>
       <div className="w-full flex items-center" style={{ marginBottom: 4 }}>
-        <span style={badgeStyle}>{badgeText}</span>
+        <span style={badgeStyle}>
+          {isPlaying ? 'Decode in progress' : 'Decode finished'}
+        </span>
       </div>
+      
       <div className="w-full max-w-xl aspect-video bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border mb-2" style={{ borderColor: '#e5e7eb' }}>
         <video
           ref={videoRef}
-          src={decodedVideoUrl}
           className="w-full h-full object-contain rounded-lg"
           controls
           onPlay={onPlay}
@@ -76,8 +98,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onLoadedMetadata={handleLoadedMetadata}
           onError={() => onError('Failed to load video.')}
           style={{ background: '#f9fafb' }}
+          autoPlay
+          {...(!decodedVideoUrl?.endsWith('.m3u8') && { src: decodedVideoUrl })}
         />
       </div>
+      
       <div className="w-full max-w-xl mb-6" style={{ textAlign: 'left' }}>
         <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace', fontWeight: 400 }}>
           {formatTime(currentTime)} / {formatTime(duration)}

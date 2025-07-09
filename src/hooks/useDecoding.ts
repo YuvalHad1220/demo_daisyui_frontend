@@ -178,12 +178,20 @@ export const useDecoding = (): UseDecodingReturn => {
 
 
   const resetDecode = useCallback(async () => {
+    try {
+      await fetch('http://localhost:9000/reset_decode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (e) {
+      // Optionally handle/log error, but always reset local state
+    }
     setDecodingError('');
     setDecodingState('initial');
     setDecodingResult(null);
     setDecodingProgress({
       progress: 0,
-      eta: '18s',
+      eta: 'calculating...',
       currentFrame: 0,
       totalFrames: 1800,
     });

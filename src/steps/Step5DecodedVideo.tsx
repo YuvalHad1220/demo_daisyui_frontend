@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Play } from 'lucide-react';
+import { useWorkflow } from '../hooks/WorkflowContext';
 import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
 import VideoPlayer from './step5DecodedVideo/VideoPlayer';
@@ -7,40 +8,28 @@ import ScreenshotButton from './step5DecodedVideo/ScreenshotButton';
 import ScreenshotToast from './step5DecodedVideo/ScreenshotToast';
 
 const Step5DecodedVideo: React.FC<{ onResetGroup: () => void; isFirstStepInGroup: boolean }> = ({ onResetGroup, isFirstStepInGroup }) => {
+  const { fileUpload } = useWorkflow();
   const [screenshotToast, setScreenshotToast] = useState(false);
   const [error, setError] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(60); // Simulated duration
-  const [decodeFinished, setDecodeFinished] = useState(false);
+  const [duration, setDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Simulate decoded video URL
-  const decodedVideoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4';
-
-  const handlePlay = () => {
-    setIsPlaying(true);
-    setDecodeFinished(false);
+  // Construct HLS URL from uploaded filename
+  const getDecodedVideoUrl = (): string => {
+    const filename = fileUpload.uploadedFile?.name?.replace('.mp4', '') || '';
+    return `http://localhost:9000/hls/${filename}/decoded/stream.m3u8`;
   };
 
-  const handlePause = () => {
-    setIsPlaying(false);
-    setDecodeFinished(true);
-  };
+  const decodedVideoUrl = getDecodedVideoUrl();
 
-  const handleEnded = () => {
-    setIsPlaying(false);
-    setDecodeFinished(true);
-  };
-
-  const handleTimeUpdate = (time: number) => {
-    setCurrentTime(time);
-  };
-
-  const handleLoadedMetadata = (dur: number) => {
-    setDuration(dur);
-  };
+  const handlePlay = () => setIsPlaying(true);
+  const handlePause = () => setIsPlaying(false);
+  const handleEnded = () => setIsPlaying(false);
+  const handleTimeUpdate = (time: number) => setCurrentTime(time);
+  const handleLoadedMetadata = (dur: number) => setDuration(dur);
 
   const takeScreenshot = () => {
     if (!videoRef.current || !canvasRef.current) {
@@ -74,7 +63,7 @@ const Step5DecodedVideo: React.FC<{ onResetGroup: () => void; isFirstStepInGroup
 
         // Generate filename with timestamp
         const timestamp = Math.floor(currentTime);
-        const filename = `demo_screenshot_${timestamp.toString().padStart(3, '0')}.png`;
+        const filename = `screenshot_${timestamp.toString().padStart(3, '0')}.png`;
 
         // Create download link
         const url = URL.createObjectURL(blob);
@@ -105,18 +94,15 @@ const Step5DecodedVideo: React.FC<{ onResetGroup: () => void; isFirstStepInGroup
       onResetClick={onResetGroup}
     >
       {/* Hidden canvas for screenshot capture */}
-      <canvas 
-        ref={canvasRef} 
-        style={{ display: 'none' }}
-      />
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
       
-      {/* Main Content */}
       <div className="px-6 py-8">
         {error && (
           <div className="w-full mb-4 animate-shake">
             <ErrorAlert title="Playback Error" message={error} />
           </div>
         )}
+        
         <VideoPlayer
           decodedVideoUrl={decodedVideoUrl}
           onTimeUpdate={handleTimeUpdate}
@@ -128,14 +114,15 @@ const Step5DecodedVideo: React.FC<{ onResetGroup: () => void; isFirstStepInGroup
           isPlaying={isPlaying}
           currentTime={currentTime}
           duration={duration}
+          videoRef={videoRef}
         />
+        
         <ScreenshotButton
           onClick={takeScreenshot}
           disabled={!!error || !decodedVideoUrl}
         />
-        {screenshotToast && (
-          <ScreenshotToast />
-        )}
+        
+        {screenshotToast && <ScreenshotToast />}
       </div>
     </StageCard>
   );
