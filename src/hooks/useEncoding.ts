@@ -180,7 +180,15 @@ export const useEncoding = (filename: string, inputSize: number): UseEncodingRet
   }, [encodingState]);
 
   // Reset encoding state
-  const resetEncode = useCallback(() => {
+  const resetEncode = useCallback(async () => {
+    try {
+      await fetch('http://127.0.0.1:9000/reset_encode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (e) {
+      // Optionally handle/log error, but always reset local state
+    }
     setEncodingError('');
     setEncodingState('initial');
     setEncodingResult(null);

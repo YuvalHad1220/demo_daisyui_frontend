@@ -13,7 +13,7 @@ const DecodingStats: React.FC<DecodingStatsProps> = ({ duration, frameCount, psn
       <div className="w-10 h-10 rounded-lg mx-auto mb-2 flex items-center justify-center" style={{ backgroundColor: '#dbeafe' }}>
         <Clock className="w-5 h-5" style={{ color: '#2563eb' }} />
       </div>
-      <p className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>Duration</p>
+      <p className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>Decoding Time</p>
       <p className="text-sm font-semibold" style={{ color: '#111827' }}>{duration}s</p>
     </div>
     <div className="text-center p-4 rounded-lg border" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
