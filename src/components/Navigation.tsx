@@ -18,7 +18,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   totalSteps
 }) => {
   return (
-    <div className="flex-shrink-0 pb-6 bg-gray-50 px-6">
+    <div className="flex-shrink-0 pb-6 px-6">
       <div className="flex justify-between items-center">
         <AppButton
           onClick={onPrevious}

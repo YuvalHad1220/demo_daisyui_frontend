@@ -43,6 +43,8 @@ export const useFileUpload = (): FileUploadHookReturn => {
   const [uploadProgress, setUploadProgress] = useState<number>(initialState.uploadProgress);
   const [error, setError] = useState<string>(initialState.error);
 
+  
+
   // Simulate backend API
   const fakeApi = async (data: any, ms = 600) => {
     await new Promise(res => setTimeout(res, ms));
@@ -55,27 +57,36 @@ export const useFileUpload = (): FileUploadHookReturn => {
     setUploadState('uploading');
     setUploadProgress(0);
     try {
-      // Simulate backend upload
-      let progress = 0;
-      while (progress < 100) {
-        await fakeApi(null, 80);
-        progress = Math.min(progress + Math.random() * 30 + 10, 100);
-        setUploadProgress(Math.round(progress));
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('http://127.0.0.1:9000/upload_video', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Upload failed');
       }
-      // Simulate backend response with file info
-      const url = URL.createObjectURL(file);
+
+      const result = await response.json();
+      const url = URL.createObjectURL(file); // Still use this for local preview
+
       const uploaded: VideoFile = {
-        name: file.name,
-        size: file.size,
-        type: file.type,
+        name: result.filename,
+        size: file.size, // Backend doesn't return size, so use original file size
+        type: result.content_type,
         url,
+        saved_path: result.saved_path, // Store the saved path from backend
       };
-      await fakeApi(uploaded, 400);
+
       setUploadedFile(uploaded);
       setUploadState('uploaded');
+      setUploadProgress(100); // Assuming full progress on successful upload
       setError('');
-    } catch (e) {
-      setError('Upload failed');
+    } catch (e: any) {
+      setError(e.message || 'Upload failed');
       setUploadState('error');
     } finally {
       setLoading(false);
@@ -85,11 +96,22 @@ export const useFileUpload = (): FileUploadHookReturn => {
   const reset = useCallback(async () => {
     setLoading(true);
     try {
-      await fakeApi(null, 300);
+      const response = await fetch('http://127.0.0.1:9000/reset_file_upload', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to reset');
+      }
+
+      // Assuming success, reset frontend state
       setUploadState(initialState.uploadState);
       setUploadedFile(initialState.uploadedFile);
       setUploadProgress(initialState.uploadProgress);
       setError(initialState.error);
+    } catch (e: any) {
+      setError(e.message || 'Failed to reset');
     } finally {
       setLoading(false);
     }
