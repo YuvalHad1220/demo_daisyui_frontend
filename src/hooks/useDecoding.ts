@@ -38,7 +38,7 @@ interface UseDecodingReturn {
   decodingProgress: DecodingProgress;
   startDecode: () => Promise<void>;
   resetDecode: () => Promise<void>;
-  takeScreenshot: () => Promise<string>;
+  takeScreenshot: (videoElement?: HTMLVideoElement | null, currentTime?: number) => string;
 }
 
 export const useDecoding = (key?: string): UseDecodingReturn => {
@@ -213,11 +213,59 @@ export const useDecoding = (key?: string): UseDecodingReturn => {
     });
   }, [key]);
 
-  const takeScreenshot = useCallback(async (): Promise<string> => {
-    await new Promise(res => setTimeout(res, 200));
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return `screenshot-${timestamp}.png`;
-  }, []);
+  const takeScreenshot = useCallback((videoElement?: HTMLVideoElement | null, currentTime?: number): string => {
+    if (!videoElement) {
+      throw new Error('Video element not available');
+    }
+
+    if (!key) {
+      throw new Error('No key available for screenshot');
+    }
+
+    try {
+      // Create a canvas element
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        throw new Error('Failed to get canvas context');
+      }
+
+      // Set canvas dimensions to match video
+      canvas.width = videoElement.videoWidth;
+      canvas.height = videoElement.videoHeight;
+
+      // Draw the current video frame to canvas
+      ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+      // Convert canvas to blob and download
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          throw new Error('Failed to create screenshot');
+        }
+
+        // Generate filename with key and current time
+        const timestamp = Math.floor(currentTime || 0);
+        const filename = `screenshot_${key}_${timestamp.toString().padStart(3, '0')}.png`;
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+
+      // Return filename for reference
+      const timestamp = Math.floor(currentTime || 0);
+      return `screenshot_${key}_${timestamp.toString().padStart(3, '0')}.png`;
+    } catch (err) {
+      throw new Error('Failed to take screenshot');
+    }
+  }, [key]);
 
   return useMemo(() => ({
     decodingState,
