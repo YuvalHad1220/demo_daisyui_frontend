@@ -45,6 +45,8 @@ interface UseScreenshotSearchReturn {
   takeScreenshot: () => Promise<string>;
   jumpToTimestamp: (timestamp: string) => Promise<void>;
   addUploadedImage: (filename: string, fileUrl: string) => void;
+  selectedFiles: File[];
+  setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
 }
 
 export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => {
@@ -60,6 +62,7 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
     matchesFound: 0,
     processingMethod: 'Initializing...',
   });
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   // Reset state when key changes
   useEffect(() => {
@@ -76,6 +79,7 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
         matchesFound: 0,
         processingMethod: 'Initializing...',
       });
+      setSelectedFiles([]); // Reset selected files when key changes
     }
   }, [key]);
 
@@ -261,6 +265,7 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
       matchesFound: 0,
       processingMethod: 'Initializing...',
     });
+    setSelectedFiles([]); // Reset selected files on reset
   }, []);
 
   const takeScreenshot = useCallback(async (): Promise<string> => {
@@ -307,6 +312,8 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
     takeScreenshot,
     jumpToTimestamp,
     addUploadedImage,
+    selectedFiles,
+    setSelectedFiles,
   }), [
     searchState,
     searchError,
@@ -318,5 +325,7 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
     takeScreenshot,
     jumpToTimestamp,
     addUploadedImage,
+    selectedFiles,
+    setSelectedFiles,
   ]);
 }; 

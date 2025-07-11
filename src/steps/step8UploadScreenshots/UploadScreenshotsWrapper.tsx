@@ -19,7 +19,8 @@ interface UploadScreenshotsWrapperProps {
 }
 
 const UploadScreenshotsWrapper: React.FC<UploadScreenshotsWrapperProps> = ({ onResetGroup }) => {
-  const [selectedFiles, setSelectedFiles] = useState<ScreenshotFile[]>([]);
+  const { screenshotSearch } = useWorkflow();
+  const { selectedFiles, setSelectedFiles } = screenshotSearch;
   const [error, setError] = useState('');
   const [hoveredFile, setHoveredFile] = useState<{ file: ScreenshotFile; idx: number } | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -30,7 +31,6 @@ const UploadScreenshotsWrapper: React.FC<UploadScreenshotsWrapperProps> = ({ onR
   const [resetting, setResetting] = useState(false);
 
   // Use the screenshot search hook from workflow context
-  const { screenshotSearch } = useWorkflow();
   const { startSearch, searchState, searchError, searchProgress, resetSearch, addUploadedImage } = screenshotSearch;
   // Get the workflow context to access file upload info
   const { fileUpload } = useWorkflow();
@@ -43,7 +43,7 @@ const UploadScreenshotsWrapper: React.FC<UploadScreenshotsWrapperProps> = ({ onR
     } else {
       setError('');
     }
-    setSelectedFiles((prev) => [...prev, ...validFiles]);
+    setSelectedFiles((prev: ScreenshotFile[]) => [...prev, ...validFiles]);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -55,12 +55,11 @@ const UploadScreenshotsWrapper: React.FC<UploadScreenshotsWrapperProps> = ({ onR
     } else {
       setError('');
     }
-    setSelectedFiles((prev) => [...prev, ...validFiles]);
+    setSelectedFiles((prev: ScreenshotFile[]) => [...prev, ...validFiles]);
   };
 
   const handleReset = async () => {
     setResetting(true);
-    setSelectedFiles([]);
     setError('');
     setUploadProgress(0);
     setIsUploading(false);
