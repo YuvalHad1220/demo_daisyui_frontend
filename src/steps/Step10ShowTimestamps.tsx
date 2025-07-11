@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Clock } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
 import { useWorkflow } from '../hooks/WorkflowContext';
@@ -71,17 +71,18 @@ const Step10ShowTimestamps: React.FC<{ onResetGroup: () => void }> = ({ onResetG
     };
   }) || [];
 
-  const handleTimeUpdate = () => {
+  // Memoize event handlers to prevent re-renders
+  const handleTimeUpdate = useCallback(() => {
     if (videoRef.current) {
       setCurrentTime(videoRef.current.currentTime);
     }
-  };
+  }, []);
 
-  const handleLoadedMetadata = () => {
+  const handleLoadedMetadata = useCallback(() => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
     }
-  };
+  }, []);
 
   const handleScreenshot = async () => {
     try {

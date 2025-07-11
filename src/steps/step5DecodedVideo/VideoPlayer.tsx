@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from 'react';
-import Hls from 'hls.js';
+import React, { useRef } from 'react';
+import HlsPlayer from '../../components/ui/HlsPlayer';
+import type { HlsPlayerRef } from '../../components/ui/HlsPlayer';
 
 interface VideoPlayerProps {
   decodedVideoUrl: string;
@@ -13,8 +14,8 @@ interface VideoPlayerProps {
   currentTime: number;
   duration: number;
   videoRef?: React.RefObject<HTMLVideoElement | null>;
-  decodingState: 'initial' | 'decoding' | 'error' | 'done'; // <-- add decodingState prop
-  onScreenshot?: () => void; // optional screenshot handler
+  decodingState: 'initial' | 'decoding' | 'error' | 'done';
+  onScreenshot?: () => void;
 }
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -32,65 +33,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   decodingState,
   onScreenshot,
 }) => {
-  const internalVideoRef = useRef<HTMLVideoElement | null>(null);
-  const videoRef = externalVideoRef || internalVideoRef;
-
-  // HLS setup
-  useEffect(() => {
-    if (decodedVideoUrl && decodedVideoUrl.includes('.m3u8') && videoRef.current) {
-      if (Hls.isSupported()) {
-        const hls = new Hls({ 
-          debug: true,
-          xhrSetup: (xhr, url) => {
-            // Ensure proper headers for HLS requests
-            xhr.setRequestHeader('Accept', 'application/vnd.apple.mpegurl, application/x-mpegURL, text/plain, */*');
-          }
-        });
-        
-        hls.loadSource(decodedVideoUrl);
-        hls.attachMedia(videoRef.current);
-        
-        // Add HLS event listeners for better duration handling
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (videoRef.current && videoRef.current.duration) {
-            onLoadedMetadata(videoRef.current.duration);
-          }
-        });
-        
-        hls.on(Hls.Events.LEVEL_LOADED, () => {
-          if (videoRef.current && videoRef.current.duration) {
-            onLoadedMetadata(videoRef.current.duration);
-          }
-        });
-
-        return () => {
-          hls?.destroy();
-        };
-      } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
-        videoRef.current.src = decodedVideoUrl;
-      }
-    }
-  }, [decodedVideoUrl, videoRef]);
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      onTimeUpdate(videoRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      onLoadedMetadata(videoRef.current.duration);
-    }
-  };
-
-
+  const hlsPlayerRef = useRef<HlsPlayerRef>(null);
 
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
+
+  // Sync the videoRef with the HlsPlayer's internal video element
+  React.useEffect(() => {
+    if (hlsPlayerRef.current && externalVideoRef) {
+      // Update the videoRef to point to the HlsPlayer's video element
+      (externalVideoRef as any).current = hlsPlayerRef.current.videoElement;
+    }
+  }, [externalVideoRef]);
 
   // Decoding badge logic synced with decodingState
   const isDecodingInProgress = decodingState === 'decoding';
@@ -124,18 +81,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       <div className="p-6 flex-1">
         <div className="aspect-video rounded-lg flex items-center justify-center overflow-hidden border max-w-4xl max-h-128 mx-auto" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
           {decodedVideoUrl ? (
-            <video
-              ref={videoRef}
-              className="w-full h-full object-contain rounded-lg"
-              controls
+            <HlsPlayer
+              ref={hlsPlayerRef}
+              src={decodedVideoUrl}
+              onTimeUpdate={onTimeUpdate}
+              onLoadedMetadata={onLoadedMetadata}
               onPlay={onPlay}
               onPause={onPause}
               onEnded={onEnded}
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              onError={() => onError('Failed to load video.')}
+              onError={onError}
+              className="w-full h-full object-contain rounded-lg"
+              controls
               autoPlay
-              {...(!decodedVideoUrl?.includes('.m3u8') && { src: decodedVideoUrl })}
             />
           ) : (
             <div className="flex flex-col items-center justify-center space-y-3 opacity-40">

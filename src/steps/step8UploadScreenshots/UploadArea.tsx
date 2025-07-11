@@ -1,55 +1,60 @@
 import React from 'react';
-import { Image } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 interface UploadAreaProps {
   selectedFilesCount: number;
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  fileInputRef: React.RefObject<HTMLInputElement>;
 }
 
 const UploadArea: React.FC<UploadAreaProps> = ({
   selectedFilesCount,
   onDrop,
   onFileSelect,
-  fileInputRef,
-}) => (
-  <div
-    className={`border-2 border-dashed rounded-lg transition-all duration-300 cursor-pointer hover:border-gray-400 ${
-      selectedFilesCount > 0 
-        ? 'p-4 mb-6' 
-        : 'p-12 text-center'
-    }`}
-    style={{ 
-      borderColor: '#e8e6e3', 
-      background: selectedFilesCount > 0 ? '#fdfcfb' : 'transparent'
-    }}
-    onDragOver={(e) => e.preventDefault()}
-    onDrop={onDrop}
-    onClick={() => fileInputRef.current?.click()}
-  >
-    <input
-      ref={fileInputRef}
-      type="file"
-      accept="image/*"
-      multiple
-      className="hidden"
-      onChange={onFileSelect}
-    />
-    <div className={`flex items-center ${selectedFilesCount > 0 ? 'justify-center space-x-3' : 'flex-col space-y-4'}`}>
-      <div className={`rounded-lg flex items-center justify-center ${selectedFilesCount > 0 ? 'w-8 h-8' : 'w-12 h-12'}`} style={{ backgroundColor: '#f0fdfa' }}>
-        <Image className={selectedFilesCount > 0 ? 'w-4 h-4' : 'w-6 h-6'} style={{ color: '#14b8a6' }} />
-      </div>
-      <div className={`text-center ${selectedFilesCount > 0 ? 'text-sm' : ''}`}>
-        <p className={`font-medium ${selectedFilesCount > 0 ? 'text-sm' : 'text-base'}`} style={{ color: '#374151' }}>
-          {selectedFilesCount > 0 ? 'Add more images' : 'Drag and drop or click to select'}
+  fileInputRef
+}) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  return (
+    <div className="flex flex-col items-center space-y-6 animate-fade-in">
+      <div
+        className="w-full max-w-md border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors hover:border-orange-400"
+        style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb' }}
+        onDrop={onDrop}
+        onDragOver={handleDragOver}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <Upload className="w-12 h-12 mx-auto mb-4" style={{ color: '#9ca3af' }} />
+        <p className="text-lg font-medium" style={{ color: '#111827' }}>
+          Upload Screenshots
         </p>
-        <p className="text-xs" style={{ color: '#6b7280' }}>
-          Supports PNG, JPG, JPEG
+        <p className="text-sm mt-2" style={{ color: '#6b7280' }}>
+          Drag and drop image files here, or click to browse
+        </p>
+        <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>
+          Supports JPG, PNG, GIF • Maximum 10MB per file
         </p>
       </div>
+      
+      {selectedFilesCount > 0 && (
+        <p className="text-sm font-medium" style={{ color: '#6b7280' }}>
+          {selectedFilesCount} file{selectedFilesCount !== 1 ? 's' : ''} selected
+        </p>
+      )}
+      
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={onFileSelect}
+        className="hidden"
+      />
     </div>
-  </div>
-);
+  );
+};
 
 export default UploadArea;

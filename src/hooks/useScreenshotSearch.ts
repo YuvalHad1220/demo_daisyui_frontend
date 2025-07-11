@@ -267,10 +267,11 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
     // Simulate taking a screenshot
     await new Promise(res => setTimeout(res, 200));
     
-    // Return a mock screenshot URL or data
+    // Return a mock screenshot URL or data with key included
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return `screenshot-${timestamp}.png`;
-  }, []);
+    const keySuffix = key ? `-${key}` : '';
+    return `screenshot-${timestamp}${keySuffix}.png`;
+  }, [key]);
 
   const jumpToTimestamp = useCallback(async (timestamp: string): Promise<void> => {
     // Simulate jumping to a specific timestamp in the video

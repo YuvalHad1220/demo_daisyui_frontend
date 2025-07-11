@@ -1,6 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { AlertCircle } from 'lucide-react';
-import Hls from 'hls.js';
+import HlsPlayer from '../../components/ui/HlsPlayer';
+import type { HlsPlayerRef } from '../../components/ui/HlsPlayer';
 
 interface VideoPlayerSectionProps {
   error: string;
@@ -25,31 +26,21 @@ const VideoPlayerSection: React.FC<VideoPlayerSectionProps> = ({
   setError,
   videoRef,
 }) => {
+  const hlsPlayerRef = useRef<HlsPlayerRef>(null);
+
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // HLS.js support
-  useEffect(() => {
-    let hls: Hls | null = null;
-    const video = videoRef.current;
-    if (decodedVideoUrl && decodedVideoUrl.endsWith('.m3u8') && video) {
-      if (Hls.isSupported()) {
-        hls = new Hls();
-        hls.loadSource(decodedVideoUrl);
-        hls.attachMedia(video);
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = decodedVideoUrl;
-      }
+  // Sync the videoRef with the HlsPlayer's internal video element
+  React.useEffect(() => {
+    if (hlsPlayerRef.current && videoRef) {
+      // Update the videoRef to point to the HlsPlayer's video element
+      (videoRef as any).current = hlsPlayerRef.current.videoElement;
     }
-    return () => {
-      if (hls) {
-        hls.destroy();
-      }
-    };
-  }, [decodedVideoUrl, videoRef]);
+  }, [videoRef]);
 
   return (
     <>
@@ -82,15 +73,15 @@ const VideoPlayerSection: React.FC<VideoPlayerSectionProps> = ({
       )}
 
       <div className="w-full max-w-xl aspect-video rounded-lg flex items-center justify-center overflow-hidden border mb-2" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
-        <video
-          ref={videoRef}
-          // src is set by HLS.js or natively if not HLS
-          className="w-full h-full object-contain rounded-lg"
-          controls
+        <HlsPlayer
+          ref={hlsPlayerRef}
+          src={decodedVideoUrl}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
-          onError={() => setError('Failed to load video.')}
+          onError={setError}
+          className="w-full h-full object-contain rounded-lg"
           style={{ background: '#fdfcfb' }}
+          controls
         />
       </div>
       

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { Play } from 'lucide-react';
 import { useWorkflow } from '../hooks/WorkflowContext';
 import { ErrorAlert } from '../components/ui/ErrorAlert';
@@ -27,11 +27,12 @@ const Step5DecodedVideo: React.FC<{ onResetGroup: () => void; isFirstStepInGroup
 
   const decodedVideoUrl = getDecodedVideoUrl();
 
-  const handlePlay = () => setIsPlaying(true);
-  const handlePause = () => setIsPlaying(false);
-  const handleEnded = () => setIsPlaying(false);
-  const handleTimeUpdate = (time: number) => setCurrentTime(time);
-  const handleLoadedMetadata = (dur: number) => setDuration(dur);
+  // Memoize event handlers to prevent re-renders
+  const handlePlay = useCallback(() => setIsPlaying(true), []);
+  const handlePause = useCallback(() => setIsPlaying(false), []);
+  const handleEnded = useCallback(() => setIsPlaying(false), []);
+  const handleTimeUpdate = useCallback((time: number) => setCurrentTime(time), []);
+  const handleLoadedMetadata = useCallback((dur: number) => setDuration(dur), []);
 
   const takeScreenshot = () => {
     if (!videoRef.current || !canvasRef.current) {
