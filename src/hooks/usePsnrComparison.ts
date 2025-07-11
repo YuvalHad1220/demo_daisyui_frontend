@@ -149,49 +149,40 @@ export const usePsnrComparison = (key: string): UsePsnrComparisonReturn => {
     }));
   }, [videoDataMap]);
 
-  // FIXED: All videos must be ready AND not buffering to be considered loaded (ignoring 'ours' buffering)
   const allVideosLoaded = useMemo(() => {
-    const standardCodecs = ['h264', 'h265', 'av1'];
-    const loaded =
-      Object.values(readyStates).every(ready => ready) &&
-      !standardCodecs.some(codec => bufferingStates[codec]);
-    console.log('All videos loaded calculation:', {
-      readyStates,
-      bufferingStates,
-      allVideosLoaded: loaded
-    });
+    const loaded = Object.values(readyStates).every(ready => ready);
+    console.log('All videos loaded calculation:', { readyStates, allVideosLoaded: loaded });
     return loaded;
-  }, [readyStates, bufferingStates]);
+  }, [readyStates]);
 
-  // FIXED: Monitor buffering states and pause all videos if any is buffering (ignoring 'ours' buffering)
   useEffect(() => {
     const standardCodecs = ['h264', 'h265', 'av1'];
     const anyStandardBuffering = standardCodecs.some(codec => bufferingStates[codec]);
+    
+    // Declarative playback: determine if videos should be playing based on state
+    const canPlay = isPlaying && allVideosLoaded && !anyStandardBuffering;
 
-    if (anyStandardBuffering && isPlaying) {
-      // Pause all videos when any standard video is buffering
-      if (oursRef.current) {
-        oursRef.current.pause();
-      }
+    const refs = {
+      ours: oursRef,
+      h264: h264Ref,
+      h265: h265Ref,
+      av1: av1Ref,
+    };
+
+    Object.values(refs).forEach(ref => {
+      const player = ref.current;
+      if (!player) return;
       
-      [h264Ref, h265Ref, av1Ref].forEach(ref => {
-        if (ref.current) {
-          ref.current.pause();
-        }
-      });
-    } else if (!anyStandardBuffering && isPlaying && allVideosLoaded) {
-      // Resume all videos when buffering stops
-      if (oursRef.current) {
-        oursRef.current.play();
+      if (canPlay) {
+        // player.play() is idempotent, safe to call multiple times
+        player.play().catch(e => console.error("Play interrupted", e));
+      } else {
+        player.pause();
       }
-      
-      [h264Ref, h265Ref, av1Ref].forEach(ref => {
-        if (ref.current) {
-          ref.current.play();
-        }
-      });
-    }
-  }, [bufferingStates, isPlaying, allVideosLoaded, oursRef, h264Ref, h265Ref, av1Ref]);
+    });
+
+  }, [isPlaying, allVideosLoaded, bufferingStates]);
+
 
   // Update PSNR data when videoDataMap changes
   useEffect(() => {
