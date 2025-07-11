@@ -10,6 +10,7 @@ import SearchProgress from './SearchProgress';
 import UploadFinishedState from './UploadFinishedState';
 import UploadButton from './UploadButton';
 import UploadProgress from './UploadProgress';
+import LoadingCircular from '../../components/ui/LoadingCircular';
 
 interface ScreenshotFile extends File {}
 
@@ -171,9 +172,10 @@ const UploadScreenshotsWrapper: React.FC<UploadScreenshotsWrapperProps> = ({ onR
           </>
         )}
         {showProgressBars && (
-          <div className="mt-8 w-full max-w-md mx-auto flex flex-col gap-8 items-center">
-            <Loader className="w-16 h-16 animate-spin mb-2" style={{ color: '#f59e42' }} aria-label="Progress" />
-            <UploadProgress
+        <div className="mt-8 w-full max-w-md mx-auto flex flex-col gap-4 items-center">
+          <span className="font-semibold text-xl mb-2" style={{ color: '#111827' }}>Vector Search In Progress</span>
+          <LoadingCircular size="md" className="mb-4" />
+          <UploadProgress
               progress={isUploading ? uploadProgress : 100}
               waiting={!isUploading && isSearchStarted}
             />
@@ -198,4 +200,4 @@ const UploadScreenshotsWrapper: React.FC<UploadScreenshotsWrapperProps> = ({ onR
   );
 };
 
-export default UploadScreenshotsWrapper; 
+export default UploadScreenshotsWrapper;
