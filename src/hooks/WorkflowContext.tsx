@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useFileUpload } from './useFileUpload';
 import { useEncoding } from './useEncoding';
@@ -22,7 +22,7 @@ import { Upload, Play, Zap, BarChart2, Video, Camera, CheckCircle, Image, Loader
 export interface StepConfig {
   label: string;
   icon: React.ElementType;
-  component: React.ComponentType;
+  component: React.ComponentType<any>; // Accepts any props
 }
 
 export interface StepGroup {
@@ -343,6 +343,36 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
       if (!completedSteps.has(5)) markStepAsCompleted(5); // Decoding Finished
     }
   }, [fileUpload.finished, encoding.encodingState, decoding.decodingState]);
+
+  // Auto-advance to Step5DecodedVideo when decoding eta becomes available, with 5s delay
+  const prevEtaRef = useRef<string | null | undefined>(null);
+  useEffect(() => {
+    let timer: number | null = null;
+    const eta = decoding.decodingProgress?.eta;
+    // Only trigger if eta is now set (not null/empty/undefined), was previously null/empty/undefined,
+    // and decoding is actively in progress
+    if (
+      currentStep < 4 &&
+      decoding.decodingState === 'decoding' &&
+      eta && eta !== '' &&
+      (!prevEtaRef.current || prevEtaRef.current === '' || prevEtaRef.current == null)
+    ) {
+      timer = setTimeout(() => {
+        // Double-check conditions before navigating
+        if (
+          currentStep < 4 &&
+          decoding.decodingState === 'decoding' &&
+          decoding.decodingProgress?.eta && decoding.decodingProgress.eta !== ''
+        ) {
+          setCurrentStep(4); // Step5DecodedVideo is step index 4
+        }
+      }, 5000);
+    }
+    prevEtaRef.current = eta;
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [decoding.decodingProgress?.eta, decoding.decodingState, currentStep]);
 
   const value: WorkflowContextType = {
     currentStep,
