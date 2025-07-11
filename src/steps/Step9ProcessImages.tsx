@@ -59,41 +59,47 @@ const Step9ProcessImages: React.FC = () => {
   // Get the total processing duration from metadata
   const totalDuration = searchResult?.metadata?.duration_seconds || 0;
 
-
-
   return (
     <div className="w-full h-full p-6">
       <div className="rounded-xl border shadow-sm overflow-hidden h-full flex flex-col" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
-        <ProcessingHeader />
+        {/* Header and duration always at the top */}
+        <div className="flex-shrink-0">
+          <ProcessingHeader />
+          {showDuration && searchResult && totalDuration > 0 && (
+            <ProcessingDuration duration={totalDuration} />
+          )}
+        </div>
+        {/* Scrollable grid area */}
+        <div className="flex-1 min-h-0">
+          <div className="h-full w-full flex flex-col">
+            <div className="flex-1 overflow-y-auto px-6 pt-2 pb-8">
+              {searchState === 'initial' && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Ready to process images</p>
+                </div>
+              )}
 
-        {showDuration && searchResult && totalDuration > 0 && (
-          <ProcessingDuration duration={totalDuration} />
-        )}
+              {searchState === 'searching' && (
+                <GlobalLoading />
+              )}
 
-        <div className="px-6 pt-2 pb-8">
-          {searchState === 'initial' && (
-            <div className="text-center py-8">
-              <p className="text-gray-500">Ready to process images</p>
+              {searchState === 'done' && processed.length > 0 && (
+                <div className="max-w-6xl mx-auto">
+                  <ImageGrid processed={processed} handleRetry={handleRetry} />
+                </div>
+              )}
+
+              {searchState === 'done' && processed.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No processed images found</p>
+                </div>
+              )}
+
+              {searchState === 'error' && (
+                <GlobalError searchError={searchError} handleRetry={handleRetry} />
+              )}
             </div>
-          )}
-
-          {searchState === 'searching' && (
-            <GlobalLoading />
-          )}
-
-          {searchState === 'done' && processed.length > 0 && (
-            <ImageGrid processed={processed} handleRetry={handleRetry} />
-          )}
-
-          {searchState === 'done' && processed.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No processed images found</p>
-            </div>
-          )}
-
-          {searchState === 'error' && (
-            <GlobalError searchError={searchError} handleRetry={handleRetry} />
-          )}
+          </div>
         </div>
       </div>
       <style>{`

@@ -25,10 +25,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({ processed, handleRetry }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-6 animate-fade-in">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
       {processed.map((img, idx) => (
-        <div key={idx} className="p-4 rounded-lg border" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
-          <div className="aspect-video rounded-lg overflow-hidden relative" style={{ background: '#fdfcfb' }}>
+        <div key={idx} className="p-4 rounded-lg border max-w-sm mx-auto w-full" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
+          <div className="aspect-video rounded-lg overflow-hidden relative mb-3" style={{ background: '#fdfcfb' }}>
             <img
               src={img.url}
               alt={img.filename}
@@ -49,7 +49,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ processed, handleRetry }) => {
             )}
           </div>
 
-          <div className="mt-3 space-y-2">
+          <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium truncate" style={{ color: '#111827' }}>{img.filename}</span>
               {img.status === 'done' && img.duration && (
