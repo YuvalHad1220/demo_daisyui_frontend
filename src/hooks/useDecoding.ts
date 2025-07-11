@@ -29,8 +29,6 @@ export interface DecodingResult {
 export interface DecodingProgress {
   progress: number; // 0-100
   eta: string; // estimated time remaining
-  currentFrame: number;
-  totalFrames: number;
 }
 
 interface UseDecodingReturn {
@@ -49,9 +47,7 @@ export const useDecoding = (): UseDecodingReturn => {
   const [decodingResult, setDecodingResult] = useState<DecodingResult | null>(null);
   const [decodingProgress, setDecodingProgress] = useState<DecodingProgress>({
     progress: 0,
-    eta: '18s',
-    currentFrame: 0,
-    totalFrames: 1800,
+    eta: '',
   });
 
   // Start decoding process
@@ -61,9 +57,7 @@ export const useDecoding = (): UseDecodingReturn => {
     setDecodingResult(null);
     setDecodingProgress({
       progress: 0,
-      eta: '18s',
-      currentFrame: 0,
-      totalFrames: 1800,
+      eta: '',
     });
     try {
       const res = await fetch('http://localhost:9000/start_decode', {
@@ -82,7 +76,7 @@ export const useDecoding = (): UseDecodingReturn => {
           const res = await fetch('http://localhost:9000/poll_decode_started');
           const { result: started } = await res.json();
           if (typeof started === 'number' && started > 0) {
-            setDecodingProgress(prev => ({ ...prev, currentFrame: 0 }));
+            // Decoding started successfully
           } else {
             setTimeout(checkStart, 1500);
           }
@@ -109,7 +103,7 @@ export const useDecoding = (): UseDecodingReturn => {
         }
         const data = await response.json();
         const { result } = data;
-        const { end_time, eta, progress, current_frame, total_frames } = result;
+        const { end_time, eta, progress } = result;
         setDecodingProgress(prev => ({
           ...prev,
           progress: typeof progress === 'number' ? progress : 0,
@@ -118,8 +112,6 @@ export const useDecoding = (): UseDecodingReturn => {
                 ? `${Math.floor(eta / 60)}:${String(Math.round(eta % 60)).padStart(2, '0')}`
                 : `${Math.round(eta)}s`)
             : '',
-          currentFrame: typeof current_frame === 'number' ? current_frame : prev.currentFrame,
-          totalFrames: typeof total_frames === 'number' ? total_frames : prev.totalFrames,
         }));
         if (typeof end_time === 'number' && !isNaN(end_time)) {
           // Fetch metadata from the backend
@@ -191,9 +183,7 @@ export const useDecoding = (): UseDecodingReturn => {
     setDecodingResult(null);
     setDecodingProgress({
       progress: 0,
-      eta: 'calculating...',
-      currentFrame: 0,
-      totalFrames: 1800,
+      eta: '',
     });
   }, []);
 

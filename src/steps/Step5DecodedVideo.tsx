@@ -8,7 +8,7 @@ import ScreenshotButton from './step5DecodedVideo/ScreenshotButton';
 import ScreenshotToast from './step5DecodedVideo/ScreenshotToast';
 
 const Step5DecodedVideo: React.FC<{ onResetGroup: () => void; isFirstStepInGroup: boolean }> = ({ onResetGroup, isFirstStepInGroup }) => {
-  const { fileUpload } = useWorkflow();
+  const { fileUpload, decoding } = useWorkflow();
   const [screenshotToast, setScreenshotToast] = useState(false);
   const [error, setError] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -115,6 +115,7 @@ const Step5DecodedVideo: React.FC<{ onResetGroup: () => void; isFirstStepInGroup
           currentTime={currentTime}
           duration={duration}
           videoRef={videoRef}
+          decodingState={decoding.decodingState}
         />
         
         <ScreenshotButton

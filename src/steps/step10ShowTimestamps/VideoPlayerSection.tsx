@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
+import Hls from 'hls.js';
 
 interface VideoPlayerSectionProps {
   error: string;
@@ -29,6 +30,26 @@ const VideoPlayerSection: React.FC<VideoPlayerSectionProps> = ({
     const s = Math.floor(sec % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
+
+  // HLS.js support
+  useEffect(() => {
+    let hls: Hls | null = null;
+    const video = videoRef.current;
+    if (decodedVideoUrl && decodedVideoUrl.endsWith('.m3u8') && video) {
+      if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(decodedVideoUrl);
+        hls.attachMedia(video);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = decodedVideoUrl;
+      }
+    }
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+    };
+  }, [decodedVideoUrl, videoRef]);
 
   return (
     <>
@@ -63,7 +84,7 @@ const VideoPlayerSection: React.FC<VideoPlayerSectionProps> = ({
       <div className="w-full max-w-xl aspect-video rounded-lg flex items-center justify-center overflow-hidden border mb-2" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
         <video
           ref={videoRef}
-          src={decodedVideoUrl}
+          // src is set by HLS.js or natively if not HLS
           className="w-full h-full object-contain rounded-lg"
           controls
           onTimeUpdate={handleTimeUpdate}

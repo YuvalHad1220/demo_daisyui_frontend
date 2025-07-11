@@ -9,6 +9,7 @@ import ErrorDisplay from './step8UploadScreenshots/ErrorDisplay';
 import SearchProgress from './step8UploadScreenshots/SearchProgress';
 import UploadFinishedState from './step8UploadScreenshots/UploadFinishedState';
 import UploadButton from './step8UploadScreenshots/UploadButton';
+import { AppButton } from '../components/ui/AppButton';
 
 interface ScreenshotFile extends File {
   // You can extend with custom fields if needed
@@ -22,6 +23,7 @@ const Step8UploadScreenshots: React.FC<{ onResetGroup: () => void }> = ({ onRese
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFileUrls, setUploadedFileUrls] = useState<{ [filename: string]: string }>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   // Use the screenshot search hook from workflow context
   const { screenshotSearch } = useWorkflow();
@@ -60,6 +62,18 @@ const Step8UploadScreenshots: React.FC<{ onResetGroup: () => void }> = ({ onRese
     setIsUploading(false);
     resetSearch();
     onResetGroup();
+  };
+
+  const handleReset = async () => {
+    setResetting(true);
+    setSelectedFiles([]);
+    setError('');
+    setUploadProgress(0);
+    setIsUploading(false);
+    resetSearch();
+    await new Promise(res => setTimeout(res, 400)); // for button feedback
+    onResetGroup();
+    setResetting(false);
   };
 
   const handleUpload = async () => {
@@ -133,17 +147,18 @@ const Step8UploadScreenshots: React.FC<{ onResetGroup: () => void }> = ({ onRese
       title="Upload Screenshots"
       icon={Upload}
       showReset={selectedFiles.length > 0 && !isUploading && !isSearching && !isDone}
-      resetTitle="Clear Selection"
-      onResetClick={handleClear}
+      resetTitle="Reset Uploads"
+      onResetClick={handleReset}
+      resetting={resetting}
     >
       <div className="px-6 py-8 flex-1 flex flex-col">
         {!(isUploading || isSearching || isDone) && (
-          <UploadArea
-            selectedFilesCount={selectedFiles.length}
-            onDrop={handleDrop}
-            onFileSelect={handleFileSelect}
-            fileInputRef={fileInputRef}
-          />
+            <UploadArea
+              selectedFilesCount={selectedFiles.length}
+              onDrop={handleDrop}
+              onFileSelect={handleFileSelect}
+              fileInputRef={fileInputRef}
+            />
         )}
 
         {selectedFiles.length > 0 && !(isUploading || isSearching || isDone) && (

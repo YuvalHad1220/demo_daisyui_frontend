@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useRef, useEffect 
 import type { ReactNode } from 'react';
 import { useFileUpload } from './useFileUpload';
 import { useEncoding } from './useEncoding';
-import { useDecoding } from './useDecoding';
+import { useDecoding, type DecodingState } from './useDecoding';
 import { useScreenshotSearch } from './useScreenshotSearch';
 import { useToast } from './useToast';
 import ToastContainer from '../components/ui/ToastContainer';
@@ -344,18 +344,19 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [fileUpload.finished, encoding.encodingState, decoding.decodingState]);
 
-  // Auto-advance to Step5DecodedVideo when decoding eta becomes available, with 5s delay
-  const prevEtaRef = useRef<string | null | undefined>(null);
+  // Auto-advance to Step5DecodedVideo when decoding starts and eta becomes available, with 5s delay
+  const prevDecodingStateRef = useRef<DecodingState>('initial');
   useEffect(() => {
     let timer: number | null = null;
     const eta = decoding.decodingProgress?.eta;
-    // Only trigger if eta is now set (not null/empty/undefined), was previously null/empty/undefined,
-    // and decoding is actively in progress
+    const decodingState = decoding.decodingState;
+    
+    // Trigger when decoding state changes from 'initial' to 'decoding' and eta is available
     if (
       currentStep < 4 &&
-      decoding.decodingState === 'decoding' &&
-      eta && eta !== '' &&
-      (!prevEtaRef.current || prevEtaRef.current === '' || prevEtaRef.current == null)
+      decodingState === 'decoding' &&
+      prevDecodingStateRef.current === 'initial' &&
+      eta && eta !== ''
     ) {
       timer = setTimeout(() => {
         // Double-check conditions before navigating
@@ -368,11 +369,11 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
         }
       }, 5000);
     }
-    prevEtaRef.current = eta;
+    prevDecodingStateRef.current = decodingState;
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [decoding.decodingProgress?.eta, decoding.decodingState, currentStep]);
+  }, [decoding.decodingState, decoding.decodingProgress?.eta, currentStep]);
 
   const value: WorkflowContextType = {
     currentStep,
