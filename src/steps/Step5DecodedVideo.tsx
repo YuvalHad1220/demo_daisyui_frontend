@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { Play } from 'lucide-react';
-import { useWorkflow } from '../hooks/WorkflowContext';
+import { useWorkflow } from '../hooks/useWorkflow';
 import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
 import VideoPlayer from './step5DecodedVideo/VideoPlayer';

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Clock } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
-import { useWorkflow } from '../hooks/WorkflowContext';
+import { useWorkflow } from '../hooks/useWorkflow';
 import VideoPlayerSection from './step10ShowTimestamps/VideoPlayerSection';
 import ScreenshotsGrid from './step10ShowTimestamps/ScreenshotsGrid';
 

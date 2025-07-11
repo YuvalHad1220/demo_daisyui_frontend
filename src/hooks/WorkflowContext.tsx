@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useFileUpload } from './useFileUpload';
 import { useEncoding } from './useEncoding';
-import { useDecoding, type DecodingState } from './useDecoding';
+import { useDecoding } from './useDecoding';
 import { useScreenshotSearch } from './useScreenshotSearch';
-import { usePsnrComparison, type PsnrComparisonState } from './usePsnrComparison';
+import { usePsnrComparison, codecNames, codecColors } from './usePsnrComparison';
 import { useToast } from './useToast';
 import ToastContainer from '../components/ui/ToastContainer';
 import Step1FileUpload from '../steps/Step1FileUpload';
@@ -20,67 +20,8 @@ import Step10ShowTimestamps from '../steps/Step10ShowTimestamps';
 import { SidebarStat } from '../components/ui/SidebarStat';
 import { Upload, Play, Zap, BarChart2, Video, Camera, CheckCircle, Image, Loader, BarChart3, Monitor, HardDrive, Clock, TrendingDown, Hash, Signal, FileText } from 'lucide-react';
 
-export interface StepConfig {
-  label: string;
-  icon: React.ElementType;
-  component: React.ComponentType<any>; // Accepts any props
-}
-
-export interface StepGroup {
-  label: string;
-  steps: StepConfig[];
-}
-
-export interface StepSummary {
-  name?: string;
-  resolution?: string;
-  size?: string;
-  duration?: number;
-  compression?: number;
-  saved?: number;
-  psnr?: number;
-  frames?: number;
-  count?: number;
-  width?: number;
-  height?: number;
-  finished?: boolean;
-  inputSize?: number;
-  outputSize?: number;
-}
-
-interface WorkflowContextType {
-  currentStep: number;
-  setCurrentStep: (step: number) => void;
-  completedSteps: Set<number>;
-  workflowConfig: StepGroup[];
-  allSteps: StepConfig[];
-  stepSummaries: (StepSummary | null)[];
-  stepMetadata: (React.ReactNode | null)[];
-  currentGroup: StepGroup;
-  currentGroupIndex: number;
-  currentStepLabel: string;
-  stepsInCurrentGroup: StepConfig[];
-  groupStartIndices: number[];
-  isFirstStep: boolean;
-  isLastStep: boolean;
-  goToStep: (stepIndex: number) => void;
-  goToPrevious: () => void;
-  goToNext: () => void;
-  canGoToStep: (stepIndex: number) => boolean;
-  isStepCompleted: (stepIndex: number) => boolean;
-  markStepAsCompleted: (stepIndex: number) => void;
-  getStepSummary: (stepIndex: number) => StepSummary | null;
-  getCurrentStepSummary: () => StepSummary | null;
-  resetGroup: () => void;
-  fileUpload: ReturnType<typeof useFileUpload>;
-  encoding: ReturnType<typeof useEncoding>;
-  decoding: ReturnType<typeof useDecoding>;
-  screenshotSearch: ReturnType<typeof useScreenshotSearch>;
-  psnrComparison: ReturnType<typeof usePsnrComparison>;
-  toast: ReturnType<typeof useToast>;
-}
-
-const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined);
+import { WorkflowContext } from './useWorkflow';
+import type { StepConfig, StepGroup, StepSummary, WorkflowContextType } from './types';
 
 function getResolutionLabel(width?: number, height?: number): string {
   if (!width || !height) return '--';
@@ -100,8 +41,6 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const decoding = useDecoding(fileUpload.uploadedFile?.key);
   const screenshotSearch = useScreenshotSearch(fileUpload.uploadedFile?.key);
   const toast = useToast();
-
-
 
   const psnrComparison = usePsnrComparison(fileUpload.uploadedFile?.key || '', fileUpload.uploadedFile?.duration);
 
@@ -252,11 +191,34 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
           return (
             <SidebarStat icon={FileText} value={`${summary.count} screenshots`} className="bg-teal-50 text-teal-700" />
           );
+        case 'Compare PSNR': {
+          // Show a badge for each codec: {codec_name} {psnr_value} dB, with correct color
+          if (!psnrComparison || !psnrComparison.psnrData) return null;
+          return (
+            <div className="flex flex-wrap gap-2">
+              {Object.keys(codecNames).map((codec) => {
+                const value = psnrComparison.psnrData[codec];
+                const name = codecNames[codec] || codec;
+                const color = codecColors[codec]?.bg || '#e5e7eb';
+                const textColor = codecColors[codec]?.text || '#111827';
+                const displayValue = typeof value === 'number' && isFinite(value) && value > 0 ? `${value.toFixed(1)} dB` : '--';
+                return (
+                  <span
+                    key={codec}
+                    style={{ backgroundColor: color, color: textColor, borderRadius: '0.5rem', padding: '0.25rem 0.75rem', fontWeight: 600, fontSize: 13 }}
+                  >
+                    {name} {displayValue}
+                  </span>
+                );
+              })}
+            </div>
+          );
+        }
         default:
           return null;
       }
     });
-  }, [allSteps, stepSummaries, encoding.encodingResult]);
+  }, [allSteps, stepSummaries, encoding.encodingResult, psnrComparison]);
 
   const groupStartIndices = useMemo(() => {
     let idx = 0;
@@ -284,10 +246,10 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     const groupStart = groupStartIndices[currentGroupIndex];
     const groupEnd = groupStart + currentGroup.steps.length;
     return allSteps.slice(groupStart, groupEnd);
-  }, [allSteps, groupStartIndices, currentGroupIndex, currentGroup]);
+  }, [allSteps, currentGroup.steps.length, currentGroupIndex, groupStartIndices]);
 
-  const isFirstStep = currentStep === 0;
-  const isLastStep = currentStep === allSteps.length - 1;
+  const isFirstStep = useMemo(() => currentStep === 0, [currentStep]);
+  const isLastStep = useMemo(() => currentStep === allSteps.length - 1, [currentStep, allSteps.length]);
 
   const goToStep = (stepIndex: number) => {
     if (stepIndex >= 0 && stepIndex < allSteps.length) {
@@ -303,20 +265,16 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
 
   const goToNext = () => {
     if (!isLastStep) {
-      markStepAsCompleted(currentStep);
       setCurrentStep(currentStep + 1);
-    } else {
-      markStepAsCompleted(currentStep);
-      toast.showSuccess(
-        'Workflow Complete!',
-        'All steps have been successfully completed. Your video processing workflow is finished.',
-        6000
-      );
     }
   };
 
   const canGoToStep = (stepIndex: number) => {
-    return stepIndex <= currentStep || completedSteps.has(stepIndex);
+    // Can't go to a future step if the current one isn't complete
+    if (stepIndex > currentStep && !completedSteps.has(currentStep)) {
+      return false;
+    }
+    return true;
   };
 
   const isStepCompleted = (stepIndex: number) => {
@@ -324,86 +282,64 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const markStepAsCompleted = (stepIndex: number) => {
-    console.log('markStepAsCompleted', stepIndex);
-    setCompletedSteps(prev => new Set([...prev, stepIndex]));
+    setCompletedSteps(prev => new Set(prev).add(stepIndex));
   };
 
-  const getStepSummary = (stepIndex: number) => {
-    return stepSummaries[stepIndex] || null;
+  const getStepSummary = (stepIndex: number): StepSummary | null => {
+    return stepSummaries[stepIndex];
   };
 
-  const getCurrentStepSummary = () => {
-    return getStepSummary(currentStep);
+  const getCurrentStepSummary = (): StepSummary | null => {
+    return stepSummaries[currentStep];
   };
 
   const resetGroup = () => {
     const groupStart = groupStartIndices[currentGroupIndex];
     const groupEnd = groupStart + currentGroup.steps.length;
-
+    
     setCompletedSteps(prev => {
       const newCompleted = new Set(prev);
-      for (let i = groupStart; i < groupEnd; i++) {
-        if (i !== groupStart) {
-          newCompleted.delete(i);
-        }
+      // Keep first step of group completed, remove others
+      for (let i = groupStart + 1; i < groupEnd; i++) {
+        newCompleted.delete(i);
       }
       return newCompleted;
     });
+
     setCurrentStep(groupStart);
   };
 
-  // Auto-mark steps as completed based on their state
-  React.useEffect(() => {
-    // Mark file upload as completed if it's finished
-    if (fileUpload.finished && !completedSteps.has(0)) {
-      markStepAsCompleted(0);
-    }
-    
-    // Mark encoding steps as completed if encoding is done
-    if (encoding.encodingState === 'done') {
-      if (!completedSteps.has(1)) markStepAsCompleted(1); // Encoding Started
-      if (!completedSteps.has(2)) markStepAsCompleted(2); // Encoding Finished
-    }
+  const [shouldAutoAdvance, setShouldAutoAdvance] = useState(false);
 
-    // Mark decoding steps as completed if decoding is done
-    if (decoding.decodingState === 'done') {
-      if (!completedSteps.has(3)) markStepAsCompleted(3); // Decoding Started
-      if (!completedSteps.has(4)) markStepAsCompleted(4); // Decoded Video
-      if (!completedSteps.has(5)) markStepAsCompleted(5); // Decoding Finished
-    }
-  }, [fileUpload.finished, encoding.encodingState, decoding.decodingState]);
-
-  // Auto-advance to Step5DecodedVideo when decoding starts and eta becomes available, with 5s delay
-  const prevDecodingStateRef = useRef<DecodingState>('initial');
+  // Effect 1: Check conditions and set the flag
   useEffect(() => {
-    let timer: number | null = null;
     const eta = decoding.decodingProgress?.eta;
     const decodingState = decoding.decodingState;
-    
-    // Trigger when decoding state changes from 'initial' to 'decoding' and eta is available
+
     if (
       currentStep < 4 &&
       decodingState === 'decoding' &&
-      prevDecodingStateRef.current === 'initial' &&
-      eta && eta !== ''
+      eta &&
+      eta !== '' &&
+      !shouldAutoAdvance
     ) {
+      setShouldAutoAdvance(true);
+    }
+  }, [decoding.decodingState, decoding.decodingProgress?.eta, currentStep, shouldAutoAdvance]);
+
+  // Effect 2: Trigger the auto-advance after a delay
+  useEffect(() => {
+    let timer: number | null = null;
+    if (shouldAutoAdvance) {
       timer = setTimeout(() => {
-        // Double-check conditions before navigating
-        if (
-          currentStep < 4 &&
-          decoding.decodingState === 'decoding' &&
-          decoding.decodingProgress?.eta && decoding.decodingProgress.eta !== ''
-        ) {
-          setCurrentStep(4); // Step5DecodedVideo is step index 4
-        }
+        setCurrentStep(4); // Step5DecodedVideo is step index 4
       }, 5000);
     }
-    prevDecodingStateRef.current = decodingState;
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [decoding.decodingState, decoding.decodingProgress?.eta, currentStep]);
-
+  }, [shouldAutoAdvance]);
+  
   const value: WorkflowContextType = {
     currentStep,
     setCurrentStep,
@@ -427,13 +363,13 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     markStepAsCompleted,
     getStepSummary,
     getCurrentStepSummary,
+    resetGroup,
     fileUpload,
     encoding,
     decoding,
     screenshotSearch,
     psnrComparison,
     toast,
-    resetGroup,
   };
 
   return (
@@ -442,49 +378,4 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
       <ToastContainer />
     </WorkflowContext.Provider>
   );
-};
-
-export function useWorkflow() {
-  const ctx = useContext(WorkflowContext);
-  
-  // During development hot reloading, the context might temporarily be undefined
-  // Return a fallback context instead of throwing an error
-  if (!ctx) {
-    // Log a warning but don't throw during hot reloading
-    console.warn('useWorkflow called outside of WorkflowProvider - this may happen during hot reloading');
-    // Return a minimal fallback context to prevent crashes
-    return {
-      currentStep: 0,
-      setCurrentStep: () => {},
-      completedSteps: new Set(),
-      workflowConfig: [],
-      allSteps: [],
-      stepSummaries: [],
-      stepMetadata: [],
-      currentGroup: { label: '', steps: [] },
-      currentGroupIndex: 0,
-      currentStepLabel: '',
-      stepsInCurrentGroup: [],
-      groupStartIndices: [],
-      isFirstStep: true,
-      isLastStep: false,
-      goToStep: () => {},
-      goToPrevious: () => {},
-      goToNext: () => {},
-      canGoToStep: () => false,
-      isStepCompleted: () => false,
-      markStepAsCompleted: () => {},
-      getStepSummary: () => null,
-      getCurrentStepSummary: () => null,
-      resetGroup: () => {},
-      fileUpload: {} as ReturnType<typeof useFileUpload>,
-      encoding: {} as ReturnType<typeof useEncoding>,
-      decoding: {} as ReturnType<typeof useDecoding>,
-      screenshotSearch: {} as ReturnType<typeof useScreenshotSearch>,
-      psnrComparison: {} as ReturnType<typeof usePsnrComparison>,
-      toast: {} as ReturnType<typeof useToast>,
-    } as WorkflowContextType;
-  }
-  
-  return ctx;
-} 
+}; 

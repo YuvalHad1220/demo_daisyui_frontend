@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { BarChart3, Maximize } from 'lucide-react';
 import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
-import { useWorkflow } from '../hooks/WorkflowContext';
+import { useWorkflow } from '../hooks/useWorkflow';
 import HlsPlayer from '../components/ui/HlsPlayer';
 import VideoControls from './step7ComparePsnr/VideoControls';
 import PsnrComparisonGraph from './step7ComparePsnr/PsnrComparisonGraph';

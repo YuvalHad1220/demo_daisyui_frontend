@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useWorkflow } from '../hooks/WorkflowContext';
+import { useWorkflow } from '../hooks/useWorkflow';
 import ProcessingHeader from './step9ProcessImages/ProcessingHeader';
 import ProcessingDuration from './step9ProcessImages/ProcessingDuration';
 import GlobalLoading from './step9ProcessImages/GlobalLoading';

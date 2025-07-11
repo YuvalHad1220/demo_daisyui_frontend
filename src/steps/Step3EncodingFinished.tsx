@@ -1,7 +1,7 @@
 import React from 'react';
 import { Zap } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
-import { useWorkflow } from '../hooks/WorkflowContext';
+import { useWorkflow } from '../hooks/useWorkflow';
 import EncodingFinishedLoading from './step3EncodingFinished/EncodingFinishedLoading';
 import EncodingStats from './step3EncodingFinished/EncodingStats';
 import EncodingComparisonChart from './step3EncodingFinished/EncodingComparisonChart';

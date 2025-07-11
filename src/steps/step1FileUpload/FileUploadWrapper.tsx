@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { FileUpload } from '../../components/ui/FileUpload';
-import { useWorkflow } from '../../hooks/WorkflowContext';
+import { useWorkflow } from '../../hooks/useWorkflow';
 
 interface FileUploadWrapperProps {
   onResetGroup: () => void;

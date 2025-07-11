@@ -1,6 +1,6 @@
 import React from 'react';
 import Toast from './Toast';
-import { useWorkflow } from '../../hooks/WorkflowContext';
+import { useWorkflow } from '../../hooks/useWorkflow';
 
 const ToastContainer: React.FC = () => {
   const { toast } = useWorkflow()

@@ -4,7 +4,7 @@ import { StageCard } from '../components/ui/StageCard';
 import DecodingStats from './step6DecodingFinished/DecodingStats';
 import PsnrComparisonBar from './step6DecodingFinished/PsnrComparisonBar';
 import DecodingAdvancedDetails from './step6DecodingFinished/DecodingAdvancedDetails';
-import { useWorkflow } from '../hooks/WorkflowContext';
+import { useWorkflow } from '../hooks/useWorkflow';
 
 const Step6DecodingFinished: React.FC<{ onResetGroup: () => void; isFirstStepInGroup: boolean }> = ({ onResetGroup, isFirstStepInGroup }) => {
   const { decoding } = useWorkflow();

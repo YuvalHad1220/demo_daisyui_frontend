@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
 import { Loader } from 'lucide-react';
 import { StageCard } from '../../components/ui/StageCard';
-import { useWorkflow } from '../../hooks/WorkflowContext';
+import { useWorkflow } from '../../hooks/useWorkflow';
 import UploadArea from './UploadArea';
 import SelectedFilesGrid from './SelectedFilesGrid';
 import ErrorDisplay from './ErrorDisplay';

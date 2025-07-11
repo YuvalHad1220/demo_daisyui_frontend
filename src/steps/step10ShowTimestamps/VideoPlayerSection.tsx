@@ -12,7 +12,7 @@ interface VideoPlayerSectionProps {
   handleTimeUpdate: () => void;
   handleLoadedMetadata: () => void;
   setError: (message: string) => void;
-  videoRef: React.RefObject<HTMLVideoElement>;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
 }
 
 const VideoPlayerSection: React.FC<VideoPlayerSectionProps> = ({

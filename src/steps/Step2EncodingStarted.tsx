@@ -1,7 +1,7 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
-import { useWorkflow } from '../hooks/WorkflowContext';
+import { useWorkflow } from '../hooks/useWorkflow';
 import EncodingInitialState from './Step2EncodingStarted/EncodingInitialState';
 import EncodingInProgress from './Step2EncodingStarted/EncodingInProgress';
 import EncodingErrorState from './Step2EncodingStarted/EncodingErrorState';
