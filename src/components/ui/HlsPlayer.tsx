@@ -1,4 +1,11 @@
-import React, { useRef, useEffect, forwardRef, useImperativeHandle, useCallback, memo } from 'react';
+import React, {
+  useRef,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+  useCallback,
+  memo,
+} from 'react';
 import Hls from 'hls.js';
 
 export interface HlsPlayerProps {
@@ -11,6 +18,8 @@ export interface HlsPlayerProps {
   onError?: (error: string) => void;
   onLoadStart?: () => void;
   onCanPlay?: () => void;
+  onBuffering?: (isBuffering: boolean) => void; // ✅ New prop
+  onReady?: () => void; // ✅ New prop
   controls?: boolean;
   autoPlay?: boolean;
   muted?: boolean;
@@ -18,6 +27,7 @@ export interface HlsPlayerProps {
   preload?: 'none' | 'metadata' | 'auto';
   className?: string;
   style?: React.CSSProperties;
+  playbackRate?: number;
 }
 
 export interface HlsPlayerRef {
@@ -31,34 +41,6 @@ export interface HlsPlayerRef {
   videoElement: HTMLVideoElement | null;
 }
 
-/**
- * HlsPlayer - A unified video player component that handles both HLS streams and regular video files
- * 
- * @example
- * ```tsx
- * const MyComponent = () => {
- *   const playerRef = useRef<HlsPlayerRef>(null);
- *   const [currentTime, setCurrentTime] = useState(0);
- *   const [duration, setDuration] = useState(0);
- * 
- *   const handleSeek = () => {
- *     playerRef.current?.seek(30); // Seek to 30 seconds
- *   };
- * 
- *   return (
- *     <HlsPlayer
- *       ref={playerRef}
- *       src="http://localhost:9000/hls/video/stream.m3u8"
- *       onTimeUpdate={setCurrentTime}
- *       onLoadedMetadata={setDuration}
- *       onError={(error) => console.error(error)}
- *       controls
- *       className="w-full h-full"
- *     />
- *   );
- * };
- * ```
- */
 const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
   src,
   onTimeUpdate,
@@ -69,6 +51,8 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
   onError,
   onLoadStart,
   onCanPlay,
+  onBuffering, // ✅ New prop
+  onReady, // ✅ New prop
   controls = true,
   autoPlay = false,
   muted = false,
@@ -76,11 +60,11 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
   preload = 'metadata',
   className = '',
   style = {},
+  playbackRate = (30 / 7), // Default is the diff between input and decoded output
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
 
-  // Memoize event handlers to prevent re-renders
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current && onTimeUpdate) {
       onTimeUpdate(videoRef.current.currentTime);
@@ -117,7 +101,29 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
     onCanPlay?.();
   }, [onCanPlay]);
 
-  // Expose video methods and properties through ref
+  // ✅ New buffering event handlers
+  const handleWaiting = useCallback(() => {
+    onBuffering?.(true);
+  }, [onBuffering]);
+
+  const handleCanPlayThrough = useCallback(() => {
+    onBuffering?.(false);
+    onReady?.();
+  }, [onBuffering, onReady]);
+
+  const handleSeeking = useCallback(() => {
+    onBuffering?.(true);
+  }, [onBuffering]);
+
+  const handleSeeked = useCallback(() => {
+    onBuffering?.(false);
+  }, [onBuffering]);
+
+  const handlePlaying = useCallback(() => {
+    onBuffering?.(false);
+  }, [onBuffering]);
+
+  // Expose methods
   useImperativeHandle(ref, () => ({
     play: async () => {
       if (videoRef.current) {
@@ -160,15 +166,13 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
 
     console.log('HlsPlayer: Setting up video with URL:', src);
 
-    // Clear any existing source
     videoRef.current.src = '';
 
     if (src.includes('.m3u8')) {
       // Handle HLS streams
       if (Hls.isSupported()) {
         console.log('HlsPlayer: Using HLS.js for video playback');
-        
-        // Destroy existing HLS instance
+
         if (hlsRef.current) {
           hlsRef.current.destroy();
         }
@@ -177,7 +181,6 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
           debug: false,
           enableWorker: true,
           xhrSetup: (xhr, url) => {
-            // Ensure proper headers for HLS requests
             xhr.setRequestHeader('Accept', 'application/vnd.apple.mpegurl, application/x-mpegURL, text/plain, */*');
           }
         });
@@ -185,10 +188,18 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
         hlsRef.current.loadSource(src);
         hlsRef.current.attachMedia(videoRef.current);
 
+        // Apply playbackRate
+        if (videoRef.current && playbackRate && playbackRate !== 1.0) {
+          videoRef.current.playbackRate = playbackRate;
+        }
+
         hlsRef.current.on(Hls.Events.MANIFEST_PARSED, () => {
           console.log('HlsPlayer: HLS manifest parsed, video ready to play');
-          if (videoRef.current?.duration) {
-            onLoadedMetadata?.(videoRef.current.duration);
+          if (videoRef.current) {
+            videoRef.current.playbackRate = playbackRate || 1.0;
+            if (videoRef.current.duration) {
+              onLoadedMetadata?.(videoRef.current.duration);
+            }
           }
         });
 
@@ -198,6 +209,20 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
           }
         });
 
+        // ✅ Enhanced HLS buffering events
+        hlsRef.current.on(Hls.Events.BUFFER_APPENDING, () => {
+          onBuffering?.(true);
+        });
+
+        hlsRef.current.on(Hls.Events.BUFFER_APPENDED, () => {
+          onBuffering?.(false);
+        });
+
+        hlsRef.current.on(Hls.Events.BUFFER_EOS, () => {
+          onBuffering?.(false);
+          onReady?.();
+        });
+
         hlsRef.current.on(Hls.Events.ERROR, (event, data) => {
           console.error('HlsPlayer: HLS error:', data);
           if (data.fatal) {
@@ -205,16 +230,17 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
           }
         });
       } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
-        // Native HLS support (Safari)
         console.log('HlsPlayer: Using native HLS support');
         videoRef.current.src = src;
+        videoRef.current.playbackRate = playbackRate || 1.0;
       } else {
         onError?.('HLS playback not supported in this browser');
       }
     } else {
-      // Handle regular video files
+      // Regular video files
       console.log('HlsPlayer: Using regular video playback');
       videoRef.current.src = src;
+      videoRef.current.playbackRate = playbackRate || 1.0;
     }
 
     return () => {
@@ -223,7 +249,14 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
         hlsRef.current = null;
       }
     };
-  }, [src, onLoadedMetadata, onError]);
+  }, [src, playbackRate, onLoadedMetadata, onError, onBuffering, onReady]);
+
+  // Reactively apply playbackRate on changes
+  useEffect(() => {
+    if (videoRef.current && playbackRate && playbackRate !== 1.0) {
+      videoRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
 
   return (
     <video
@@ -243,6 +276,12 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
       onError={handleError}
       onLoadStart={handleLoadStart}
       onCanPlay={handleCanPlay}
+      // ✅ New buffering event listeners
+      onWaiting={handleWaiting}
+      onCanPlayThrough={handleCanPlayThrough}
+      onSeeking={handleSeeking}
+      onSeeked={handleSeeked}
+      onPlaying={handlePlaying}
       {...(!src?.includes('.m3u8') && { src })}
     />
   );
@@ -250,4 +289,4 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
 
 HlsPlayer.displayName = 'HlsPlayer';
 
-export default HlsPlayer; 
+export default HlsPlayer;

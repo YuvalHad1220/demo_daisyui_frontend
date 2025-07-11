@@ -6,6 +6,7 @@ interface VideoControlsProps {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  allVideosLoaded: boolean;
   handlePlayPause: () => void;
   handleSkip: (direction: 'backward' | 'forward') => void;
   handleScrubberChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -15,6 +16,7 @@ const VideoControls: React.FC<VideoControlsProps> = ({
   isPlaying,
   currentTime,
   duration,
+  allVideosLoaded,
   handlePlayPause,
   handleSkip,
   handleScrubberChange,
@@ -27,11 +29,25 @@ const VideoControls: React.FC<VideoControlsProps> = ({
 
   return (
     <div className="mb-6">
+      {/* Loading message */}
+      {!allVideosLoaded && (
+        <div className="mb-4 p-3 rounded-lg text-center" style={{ backgroundColor: '#fef3c7', border: '1px solid #f59e0b' }}>
+          <span className="text-sm font-medium" style={{ color: '#d97706' }}>
+            Loading videos... Playback will be enabled when all videos are ready.
+          </span>
+        </div>
+      )}
+      
       <div className="flex items-center space-x-4">
         <Tooltip content="Skip Backward 10s">
           <button
             onClick={() => handleSkip('backward')}
-            className="p-2 rounded-lg border hover:bg-gray-50 transition-colors"
+            disabled={!allVideosLoaded}
+            className={`p-2 rounded-lg border transition-colors ${
+              allVideosLoaded 
+                ? 'hover:bg-gray-50' 
+                : 'opacity-50 cursor-not-allowed'
+            }`}
             style={{ borderColor: '#d1d5db' }}
           >
             <SkipBack className="w-5 h-5" style={{ color: '#6b7280' }} />
@@ -41,7 +57,12 @@ const VideoControls: React.FC<VideoControlsProps> = ({
         <Tooltip content={isPlaying ? "Pause" : "Play"}>
           <button
             onClick={handlePlayPause}
-            className="p-3 rounded-lg border hover:bg-gray-50 transition-colors"
+            disabled={!allVideosLoaded}
+            className={`p-3 rounded-lg border transition-colors ${
+              allVideosLoaded 
+                ? 'hover:bg-gray-50' 
+                : 'opacity-50 cursor-not-allowed'
+            }`}
             style={{ borderColor: '#d1d5db' }}
           >
             {isPlaying ? (
@@ -55,7 +76,12 @@ const VideoControls: React.FC<VideoControlsProps> = ({
         <Tooltip content="Skip Forward 10s">
           <button
             onClick={() => handleSkip('forward')}
-            className="p-2 rounded-lg border hover:bg-gray-50 transition-colors"
+            disabled={!allVideosLoaded}
+            className={`p-2 rounded-lg border transition-colors ${
+              allVideosLoaded 
+                ? 'hover:bg-gray-50' 
+                : 'opacity-50 cursor-not-allowed'
+            }`}
             style={{ borderColor: '#d1d5db' }}
           >
             <SkipForward className="w-5 h-5" style={{ color: '#6b7280' }} />
@@ -69,7 +95,10 @@ const VideoControls: React.FC<VideoControlsProps> = ({
             max={duration}
             value={currentTime}
             onChange={handleScrubberChange}
-            className="w-full h-2 rounded-lg appearance-none cursor-pointer transition-all duration-150"
+            disabled={!allVideosLoaded}
+            className={`w-full h-2 rounded-lg appearance-none transition-all duration-150 ${
+              allVideosLoaded ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+            }`}
             style={{
               background: `linear-gradient(to right, #f7eee6 0%, #f7eee6 ${(currentTime / duration) * 100}%, #e8e6e3 ${(currentTime / duration) * 100}%, #e8e6e3 100%)`
             }}
