@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 export type ScreenshotSearchState = 'initial' | 'searching' | 'error' | 'done';
 
@@ -19,6 +19,8 @@ export interface ScreenshotSearchResult {
   searchDuration: number; // seconds
   searchMethod: 'template_matching' | 'feature_matching' | 'deep_learning';
   processingTime: number; // seconds
+  data?: any[]; // Backend results
+  metadata?: any; // Backend metadata
 }
 
 export interface ScreenshotSearchProgress {
@@ -28,6 +30,8 @@ export interface ScreenshotSearchProgress {
   totalFrames: number;
   matchesFound: number;
   processingMethod: string;
+  finished?: boolean;
+  in_progress?: boolean;
 }
 
 interface UseScreenshotSearchReturn {
@@ -35,17 +39,19 @@ interface UseScreenshotSearchReturn {
   searchError: string;
   searchResult: ScreenshotSearchResult | null;
   searchProgress: ScreenshotSearchProgress;
-  startSearch: (screenshots: File[]) => Promise<void>;
-  pollSearch: () => Promise<void>;
+  uploadedImageUrls: { [filename: string]: string };
+  startSearch: (videoPath: string, imagesPaths: string[]) => Promise<void>;
   resetSearch: () => Promise<void>;
   takeScreenshot: () => Promise<string>;
   jumpToTimestamp: (timestamp: string) => Promise<void>;
+  addUploadedImage: (filename: string, fileUrl: string) => void;
 }
 
 export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
   const [searchState, setSearchState] = useState<ScreenshotSearchState>('initial');
   const [searchError, setSearchError] = useState('');
   const [searchResult, setSearchResult] = useState<ScreenshotSearchResult | null>(null);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<{ [filename: string]: string }>({});
   const [searchProgress, setSearchProgress] = useState<ScreenshotSearchProgress>({
     progress: 0,
     eta: '25s',
@@ -55,129 +61,172 @@ export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
     processingMethod: 'Initializing...',
   });
 
-  // Simulate backend API
-  const fakeApi = async (data: any, ms = 600) => {
-    await new Promise(res => setTimeout(res, ms));
-    return data;
-  };
-
-  const startSearch = useCallback(async (screenshots: File[]) => {
+  // Start vector search process
+  const startSearch = useCallback(async (videoPath: string, imagesPaths: string[]) => {
     setSearchError('');
     setSearchState('searching');
     setSearchResult(null);
     setSearchProgress({
       progress: 0,
-      eta: '25s',
+      eta: 'N/A',
       currentFrame: 0,
       totalFrames: 2400,
       matchesFound: 0,
-      processingMethod: 'Initializing...',
+      processingMethod: 'Starting vector search...',
     });
 
     try {
-      // Simulate search process with progress updates
-      const totalDuration = 4000 + Math.random() * 3000; // 4-7 seconds
-      const updateInterval = 250; // Update every 250ms
-      const totalUpdates = Math.floor(totalDuration / updateInterval);
-      
-      const processingMethods = [
-        'Template matching...',
-        'Feature extraction...',
-        'Deep learning analysis...',
-        'Similarity scoring...',
-        'Finalizing results...'
-      ];
-      
-      for (let i = 0; i < totalUpdates; i++) {
-        await fakeApi(null, updateInterval);
-        
-        const progress = Math.min((i / totalUpdates) * 100, 100);
-        const currentFrame = Math.floor((progress / 100) * 2400);
-        const eta = Math.max(0, Math.round((100 - progress) * 0.6));
-        const methodIndex = Math.floor((progress / 100) * processingMethods.length);
-        const matchesFound = Math.floor((progress / 100) * (3 + Math.random() * 2)); // 3-5 matches
-        
-        setSearchProgress({
-          progress,
-          eta: `${eta}s`,
-          currentFrame,
-          totalFrames: 2400,
-          matchesFound,
-          processingMethod: processingMethods[Math.min(methodIndex, processingMethods.length - 1)],
-        });
+      const response = await fetch('http://localhost:9000/start_vector_search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ video_path: videoPath, images_path: imagesPaths }),
+      });
 
-        // Simulate random error (3% chance)
-        if (Math.random() < 0.03) {
-          throw new Error('Screenshot search failed due to processing error. Please try again.');
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Vector search failed to start');
       }
 
-      // Mock result data
-      const mockMatches: ScreenshotMatch[] = [
-        {
-          id: 'match_001',
-          url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
-          filename: 'screenshot_001.png',
-          timestamp: '00:12:45',
-          confidence: 95,
-          similarity: 0.92,
-          frameNumber: 765,
-          videoTime: 765,
-        },
-        {
-          id: 'match_002',
-          url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop',
-          filename: 'screenshot_002.png',
-          timestamp: '00:23:10',
-          confidence: 87,
-          similarity: 0.85,
-          frameNumber: 1390,
-          videoTime: 1390,
-        },
-        {
-          id: 'match_003',
-          url: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=400&h=300&fit=crop',
-          filename: 'screenshot_003.png',
-          timestamp: '00:34:05',
-          confidence: 78,
-          similarity: 0.78,
-          frameNumber: 2045,
-          videoTime: 2045,
-        },
-      ];
+      const result = await response.json();
+      if (result.result === 'already_running') {
+        throw new Error('Vector search is already running');
+      } else if (result.result !== 'ok') {
+        throw new Error(result.message || 'Failed to start vector search');
+      }
 
-      const searchMethods: Array<ScreenshotSearchResult['searchMethod']> = [
-        'template_matching',
-        'feature_matching', 
-        'deep_learning'
-      ];
-      
-      setSearchResult({
-        matches: mockMatches,
-        totalMatches: mockMatches.length,
-        searchDuration: 60,
-        searchMethod: searchMethods[Math.floor(Math.random() * searchMethods.length)],
-        processingTime: Math.round((totalDuration / 1000) * 10) / 10,
-      });
-      
-      setSearchState('done');
+      console.log('Vector search started successfully');
     } catch (e: any) {
-      setSearchError(e.message || 'Screenshot search failed');
+      setSearchError(e.message || 'Vector search failed to start');
       setSearchState('error');
     }
   }, []);
 
-  const pollSearch = useCallback(async () => {
-    // Simulate polling during search process
+  // Polling logic inside useEffect
+  useEffect(() => {
+    let interval: number;
+
+    const pollSearch = async () => {
+      try {
+        const response = await fetch('http://localhost:9000/poll_vector_search');
+        
+        if (!response.ok) {
+          throw new Error('Failed to poll vector search status');
+        }
+
+        const data = await response.json();
+        const { result } = data;
+        const { finished, in_progress } = result;
+
+        setSearchProgress(prev => ({
+          ...prev,
+          finished,
+          in_progress,
+          processingMethod: finished ? 'Search completed' : 'Searching...',
+        }));
+
+        if (finished) {
+          // Fetch results from the backend
+          try {
+            const resultsResponse = await fetch('http://localhost:9000/vector_search_results');
+            if (resultsResponse.ok) {
+              const response = await resultsResponse.json();
+              const { result: resultStatus, data: searchData, metadata } = response;
+              
+              if (resultStatus === 'ok' && searchData) {
+                console.log('Vector search results:', searchData);
+                console.log('Vector search metadata:', metadata);
+                
+                // Transform backend data to match our interface
+                const matches: ScreenshotMatch[] = [];
+                if (Array.isArray(searchData)) {
+                  searchData.forEach((item, index) => {
+                    if (item.top_results && Array.isArray(item.top_results)) {
+                      item.top_results.forEach((result: any) => {
+                        matches.push({
+                          id: `${index}-${result.timestamp || Date.now()}`,
+                          url: result.url || '',
+                          filename: result.filename || `match-${index}`,
+                          timestamp: formatTimestamp(result.timestamp || 0),
+                          confidence: result.confidence || 0,
+                          similarity: result.similarity || 0,
+                          frameNumber: result.frame_number || 0,
+                          videoTime: result.timestamp || 0,
+                        });
+                      });
+                    }
+                  });
+                }
+
+                setSearchResult({
+                  matches,
+                  totalMatches: matches.length,
+                  searchDuration: 0, // Could be calculated from metadata
+                  searchMethod: 'deep_learning',
+                  processingTime: 0, // Could be calculated from metadata
+                  data: searchData,
+                  metadata,
+                });
+              } else {
+                console.log('No vector search results available yet');
+                setSearchResult({
+                  matches: [],
+                  totalMatches: 0,
+                  searchDuration: 0,
+                  searchMethod: 'deep_learning',
+                  processingTime: 0,
+                  data: [],
+                  metadata: null,
+                });
+              }
+            } else {
+              throw new Error('Failed to fetch vector search results');
+            }
+          } catch (error) {
+            console.error('Error fetching vector search results:', error);
+            setSearchError('Failed to fetch search results');
+            setSearchState('error');
+            return;
+          }
+
+          setSearchState('done');
+          setSearchProgress(prev => ({ ...prev, progress: 100 }));
+          clearInterval(interval);
+        }
+      } catch (e: any) {
+        clearInterval(interval);
+        setSearchError(e.message || 'Polling failed');
+        setSearchState('error');
+      }
+    };
+
     if (searchState === 'searching') {
-      await fakeApi(null, 500);
+      interval = setInterval(pollSearch, 1000);
     }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [searchState]);
 
+  // Reset search state
   const resetSearch = useCallback(async () => {
+    try {
+      // You might want to add a reset endpoint to your backend
+      // await fetch('http://localhost:9000/reset_vector_search', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      // });
+    } catch (e) {
+      // Optionally handle/log error, but always reset local state
+    }
     setSearchError('');
     setSearchState('initial');
     setSearchResult(null);
+    setUploadedImageUrls({});
     setSearchProgress({
       progress: 0,
       eta: '25s',
@@ -186,12 +235,11 @@ export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
       matchesFound: 0,
       processingMethod: 'Initializing...',
     });
-    await fakeApi(null, 300);
   }, []);
 
   const takeScreenshot = useCallback(async (): Promise<string> => {
     // Simulate taking a screenshot
-    await fakeApi(null, 200);
+    await new Promise(res => setTimeout(res, 200));
     
     // Return a mock screenshot URL or data
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -200,31 +248,48 @@ export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
 
   const jumpToTimestamp = useCallback(async (timestamp: string): Promise<void> => {
     // Simulate jumping to a specific timestamp in the video
-    await fakeApi(null, 150);
+    await new Promise(res => setTimeout(res, 150));
     
     // In a real implementation, this would control the video player
     console.log(`Jumping to timestamp: ${timestamp}`);
   }, []);
+
+  const addUploadedImage = useCallback((filename: string, fileUrl: string) => {
+    setUploadedImageUrls(prev => ({
+      ...prev,
+      [filename]: fileUrl
+    }));
+  }, []);
+
+  // Helper function to format timestamp
+  const formatTimestamp = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return useMemo(() => ({
     searchState,
     searchError,
     searchResult,
     searchProgress,
+    uploadedImageUrls,
     startSearch,
-    pollSearch,
     resetSearch,
     takeScreenshot,
     jumpToTimestamp,
+    addUploadedImage,
   }), [
     searchState,
     searchError,
     searchResult,
     searchProgress,
+    uploadedImageUrls,
     startSearch,
-    pollSearch,
     resetSearch,
     takeScreenshot,
     jumpToTimestamp,
+    addUploadedImage,
   ]);
 }; 

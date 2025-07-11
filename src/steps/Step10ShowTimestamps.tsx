@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Clock } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
-import { useScreenshotSearch } from '../hooks/useScreenshotSearch';
 import { useWorkflow } from '../hooks/WorkflowContext';
 import VideoPlayerSection from './step10ShowTimestamps/VideoPlayerSection';
 import ScreenshotsGrid from './step10ShowTimestamps/ScreenshotsGrid';
@@ -20,23 +19,55 @@ const Step10ShowTimestamps: React.FC<{ onResetGroup: () => void }> = ({ onResetG
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(60);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const decodedVideoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4';
 
-  // Use the screenshot search hook
+  // Get the workflow context
+  const { fileUpload, screenshotSearch } = useWorkflow();
   const {
     searchResult,
     searchState,
     searchError,
     jumpToTimestamp,
     takeScreenshot,
-    resetSearch
-  } = useScreenshotSearch();
+    resetSearch,
+    uploadedImageUrls
+  } = screenshotSearch;
 
   // Use the workflow toast system
   const { toast } = useWorkflow();
 
-  // Get screenshots from search result
-  const screenshots = searchResult?.matches || [];
+  // Construct HLS URL from uploaded filename (same as Step5)
+  const getDecodedVideoUrl = (): string => {
+    const filename = fileUpload.uploadedFile?.name?.replace('.mp4', '') || '';
+    return `http://localhost:9000/hls/${filename}/decoded/stream.m3u8`;
+  };
+
+  const decodedVideoUrl = getDecodedVideoUrl();
+
+  // Transform backend results to match the ScreenshotsGrid interface
+  const screenshots = searchResult?.data?.map((item: any, idx: number) => {
+    // Get the query image name from the query path
+    const queryName = item.query?.split('/').pop() || `Image ${idx + 1}`;
+    
+    // Get the best match (highest similarity)
+    const bestMatch = item.top_results?.[0];
+    
+    // Get the uploaded image URL
+    const imageUrl = uploadedImageUrls[queryName] || '';
+    
+    // Format timestamp
+    const formatTimestamp = (seconds: number): string => {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    return {
+      url: imageUrl,
+      filename: queryName,
+      timestamp: formatTimestamp(bestMatch?.timestamp || 0),
+      confidence: Math.round((bestMatch?.similarity || 0) * 100),
+    };
+  }) || [];
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
@@ -69,8 +100,8 @@ const Step10ShowTimestamps: React.FC<{ onResetGroup: () => void }> = ({ onResetG
       // In a real implementation, this would control the video player
       if (videoRef.current) {
         // Convert timestamp to seconds and seek
-        const [hours, minutes, seconds] = ts.split(':').map(Number);
-        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        const [minutes, seconds] = ts.split(':').map(Number);
+        const totalSeconds = minutes * 60 + seconds;
         videoRef.current.currentTime = totalSeconds;
       }
     } catch (error) {

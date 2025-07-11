@@ -2,10 +2,10 @@ import React, { useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
 import { StageCard } from '../components/ui/StageCard';
 import { useScreenshotSearch } from '../hooks/useScreenshotSearch';
+import { useWorkflow } from '../hooks/WorkflowContext';
 import UploadArea from './step8UploadScreenshots/UploadArea';
 import SelectedFilesGrid from './step8UploadScreenshots/SelectedFilesGrid';
 import ErrorDisplay from './step8UploadScreenshots/ErrorDisplay';
-import UploadProgress from './step8UploadScreenshots/UploadProgress';
 import SearchProgress from './step8UploadScreenshots/SearchProgress';
 import UploadFinishedState from './step8UploadScreenshots/UploadFinishedState';
 import UploadButton from './step8UploadScreenshots/UploadButton';
@@ -16,15 +16,19 @@ interface ScreenshotFile extends File {
 
 const Step8UploadScreenshots: React.FC<{ onResetGroup: () => void }> = ({ onResetGroup }) => {
   const [selectedFiles, setSelectedFiles] = useState<ScreenshotFile[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [progress, setProgress] = useState(0);
   const [hoveredFile, setHoveredFile] = useState<{ file: ScreenshotFile; idx: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFileUrls, setUploadedFileUrls] = useState<{ [filename: string]: string }>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [uploadDone, setUploadDone] = useState(false);
 
-  // Use the screenshot search hook
-  const { startSearch, searchState, searchError, searchProgress, resetSearch } = useScreenshotSearch();
+  // Use the screenshot search hook from workflow context
+  const { screenshotSearch } = useWorkflow();
+  const { startSearch, searchState, searchError, searchProgress, resetSearch, addUploadedImage } = screenshotSearch;
+  
+  // Get the workflow context to access file upload info
+  const { fileUpload } = useWorkflow();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []) as ScreenshotFile[];
@@ -52,39 +56,88 @@ const Step8UploadScreenshots: React.FC<{ onResetGroup: () => void }> = ({ onRese
   const handleClear = () => {
     setSelectedFiles([]);
     setError('');
-    setProgress(0);
+    setUploadProgress(0);
+    setIsUploading(false);
     resetSearch();
-    setUploadDone(false);
     onResetGroup();
   };
 
   const handleUpload = async () => {
-    setUploading(true);
+    if (selectedFiles.length === 0) return;
+
     setError('');
+    setIsUploading(true);
+    setUploadProgress(0);
+
     try {
-      await startSearch(selectedFiles);
-      setUploadDone(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to start image processing.');
-    } finally {
-      setUploading(false);
+      // Step 1: Upload all image files to get their paths
+      const uploadedPaths: string[] = [];
+      let videoPath = '';
+      const total = selectedFiles.length;
+
+      for (let i = 0; i < total; i++) {
+        const file = selectedFiles[i];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('http://localhost:9000/upload_vector_image', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || `Upload failed for ${file.name}`);
+        }
+
+        const result = await response.json();
+        if (result.result === 'ok') {
+          uploadedPaths.push(result.path);
+          // Get video_path from the response (it's the same for all uploads)
+          videoPath = result.video_path;
+          
+          // Create a data URL for the uploaded file so we can display it later
+          const fileUrl = URL.createObjectURL(file);
+          addUploadedImage(result.filename, fileUrl);
+          
+          console.log(`Uploaded image: ${result.filename} -> ${result.path}`);
+          console.log(`Video path from upload: ${result.video_path}`);
+        }
+
+        // Update progress
+        const progress = ((i + 1) / total) * 100;
+        setUploadProgress(progress);
+      }
+
+      // Step 2: Use the video path from upload response and pass all uploaded image paths
+      console.log('Starting vector search with:');
+      console.log('- Video path:', videoPath);
+      console.log('- Images paths:', uploadedPaths);
+
+      // Step 3: Start the vector search with the correct parameters
+      await startSearch(videoPath, uploadedPaths);
+
+    } catch (e: any) {
+      setError(e.message || 'Upload and search failed');
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
-  // Show search progress if search is active
   const isSearching = searchState === 'searching';
-  const showSearchProgress = isSearching && uploadDone;
+  const isDone = searchState === 'done';
+  const showUploadProgress = isUploading && !isSearching;
 
   return (
     <StageCard
       title="Upload Screenshots"
       icon={Upload}
-      showReset={selectedFiles.length > 0 && !uploading && !uploadDone}
+      showReset={selectedFiles.length > 0 && !isUploading && !isSearching && !isDone}
       resetTitle="Clear Selection"
       onResetClick={handleClear}
     >
       <div className="px-6 py-8 flex-1 flex flex-col">
-        {!(uploading || uploadDone) && (
+        {!(isUploading || isSearching || isDone) && (
           <UploadArea
             selectedFilesCount={selectedFiles.length}
             onDrop={handleDrop}
@@ -93,24 +146,37 @@ const Step8UploadScreenshots: React.FC<{ onResetGroup: () => void }> = ({ onRese
           />
         )}
 
-        {selectedFiles.length > 0 && !(uploading || uploadDone) && (
+        {selectedFiles.length > 0 && !(isUploading || isSearching || isDone) && (
           <SelectedFilesGrid
             selectedFiles={selectedFiles}
-            handleRemoveFile={handleRemoveFile}
+            handleRemoveFile={(index) => setSelectedFiles(prev => prev.filter((_, i) => i !== index))}
             setHoveredFile={setHoveredFile}
             hoveredFile={hoveredFile}
           />
         )}
 
-        {(error || searchError) && !uploadDone && (
+        {(error || searchError) && !isDone && (
           <ErrorDisplay error={error || searchError} />
         )}
 
-        {uploading && (
-          <UploadProgress progress={progress} />
+        {showUploadProgress && (
+          <div className="mb-4">
+            <div className="w-full rounded-full h-3" style={{ background: '#fdfcfb' }}>
+              <div
+                className="h-3 rounded-full transition-all duration-300"
+                style={{ background: 'linear-gradient(90deg, #f59e42 0%, #f97316 100%)', width: `${uploadProgress}%` }}
+              />
+            </div>
+            <div className="flex items-center space-x-2 mt-2">
+              <div className="w-5 h-5 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></div>
+              <p className="text-sm font-medium" style={{ color: '#6b7280' }}>
+                {Math.round(uploadProgress)}% uploaded • Starting vector search...
+              </p>
+            </div>
+          </div>
         )}
 
-        {showSearchProgress && (
+        {isSearching && (
           <SearchProgress
             progress={searchProgress.progress}
             processingMethod={searchProgress.processingMethod}
@@ -121,15 +187,15 @@ const Step8UploadScreenshots: React.FC<{ onResetGroup: () => void }> = ({ onRese
           />
         )}
 
-        {uploadDone && !uploading && !isSearching && (
+        {isDone && !isSearching && (
           <UploadFinishedState />
         )}
 
-        {!uploadDone && (
+        {!isDone && (
           <UploadButton
             onClick={handleUpload}
-            uploading={uploading}
-            disabled={selectedFiles.length === 0 || uploading}
+            uploading={isUploading || isSearching}
+            disabled={selectedFiles.length === 0 || isUploading || isSearching}
           />
         )}
       </div>

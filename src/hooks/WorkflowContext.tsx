@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useFileUpload } from './useFileUpload';
 import { useEncoding } from './useEncoding';
 import { useDecoding } from './useDecoding';
+import { useScreenshotSearch } from './useScreenshotSearch';
 import { useToast } from './useToast';
 import ToastContainer from '../components/ui/ToastContainer';
 import Step1FileUpload from '../steps/Step1FileUpload';
@@ -73,6 +74,7 @@ interface WorkflowContextType {
   fileUpload: ReturnType<typeof useFileUpload>;
   encoding: ReturnType<typeof useEncoding>;
   decoding: ReturnType<typeof useDecoding>;
+  screenshotSearch: ReturnType<typeof useScreenshotSearch>;
   toast: ReturnType<typeof useToast>;
 }
 
@@ -94,6 +96,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const fileUpload = useFileUpload();
   const encoding = useEncoding(fileUpload.uploadedFile?.name || '', fileUpload.uploadedFile?.size || 0);
   const decoding = useDecoding();
+  const screenshotSearch = useScreenshotSearch();
   const toast = useToast();
 
   const workflowConfig = useMemo((): StepGroup[] => [
@@ -367,6 +370,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     fileUpload,
     encoding,
     decoding,
+    screenshotSearch,
     toast,
     resetGroup,
   };

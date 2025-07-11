@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useScreenshotSearch } from '../hooks/useScreenshotSearch';
+import { useWorkflow } from '../hooks/WorkflowContext';
 import ProcessingHeader from './step9ProcessImages/ProcessingHeader';
 import ProcessingDuration from './step9ProcessImages/ProcessingDuration';
 import GlobalLoading from './step9ProcessImages/GlobalLoading';
@@ -8,39 +8,24 @@ import GlobalError from './step9ProcessImages/GlobalError';
 
 const Step9ProcessImages: React.FC = () => {
   const [globalLoading, setGlobalLoading] = useState(true);
-  const [totalDuration, setTotalDuration] = useState<number>(0);
-  const [processingStartTime, setProcessingStartTime] = useState<number>(0);
   const [showDuration, setShowDuration] = useState(false);
 
-  // Use the screenshot search hook
+  // Use the screenshot search hook from workflow context
+  const { screenshotSearch } = useWorkflow();
   const {
     searchState,
     searchError,
     searchResult,
     searchProgress,
-    startSearch,
-    resetSearch
-  } = useScreenshotSearch();
+    resetSearch,
+    uploadedImageUrls
+  } = screenshotSearch;
 
   // Step 1: Initial preparation
   useEffect(() => {
     const timeout = setTimeout(() => {
       setGlobalLoading(false);
-      setProcessingStartTime(Date.now());
-
-      // Show duration in toolbar after preparation
-      const preparationTime = (Date.now() - processingStartTime) / 1000;
-      setTotalDuration(preparationTime);
       setShowDuration(true);
-
-      // Start the search process with mock files
-      const mockFiles = [
-        new File([''], 'screenshot_001.png', { type: 'image/png' }),
-        new File([''], 'screenshot_002.png', { type: 'image/png' }),
-        new File([''], 'screenshot_003.png', { type: 'image/png' }),
-        new File([''], 'screenshot_004.png', { type: 'image/png' }),
-      ];
-      startSearch(mockFiles);
     }, 1500);
 
     return () => clearTimeout(timeout);
@@ -52,34 +37,45 @@ const Step9ProcessImages: React.FC = () => {
 
     setTimeout(() => {
       setGlobalLoading(false);
-      const mockFiles = [
-        new File([''], 'screenshot_001.png', { type: 'image/png' }),
-        new File([''], 'screenshot_002.png', { type: 'image/png' }),
-        new File([''], 'screenshot_003.png', { type: 'image/png' }),
-        new File([''], 'screenshot_004.png', { type: 'image/png' }),
-      ];
-      startSearch(mockFiles);
     }, 1000);
   };
 
-  // Get processed images from search result
-  const processed = searchResult?.matches.map((match, idx) => ({
-    url: match.url,
-    filename: match.filename,
-    status: searchState === 'done' ? 'done' as const :
-            searchState === 'error' ? 'error' as const : 'processing' as const,
-    progress: searchState === 'done' ? 100 : searchProgress.progress,
-    duration: searchResult?.processingTime,
-    errorMsg: searchError || undefined,
-  })) || [];
+  // Transform backend results to match our interface
+  const processed = searchResult?.data?.map((item: any, idx: number) => {
+    // Get the query image name from the query path
+    const queryName = item.query?.split('/').pop() || `Image ${idx + 1}`;
+    
+    // Get the best match (highest similarity)
+    const bestMatch = item.top_results?.[0];
+    
+    // Get the uploaded image URL from the workflow context
+    const imageUrl = uploadedImageUrls[queryName] || '';
+    
+    return {
+      url: imageUrl,
+      filename: queryName,
+      status: searchState === 'done' ? 'done' as const :
+              searchState === 'error' ? 'error' as const : 'processing' as const,
+      progress: searchState === 'done' ? 100 : searchProgress.progress,
+      duration: item.duration_seconds,
+      timestamp: bestMatch?.timestamp,
+      similarity: bestMatch?.similarity,
+      errorMsg: searchError || undefined,
+    };
+  }) || [];
+
+  // Get the total processing duration from metadata
+  const totalDuration = searchResult?.metadata?.duration_seconds || 0;
+
+
 
   return (
     <div className="w-full h-full p-6">
       <div className="rounded-xl border shadow-sm overflow-hidden h-full flex flex-col" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
         <ProcessingHeader />
 
-        {showDuration && searchResult && (
-          <ProcessingDuration duration={searchResult.processingTime} />
+        {showDuration && searchResult && totalDuration > 0 && (
+          <ProcessingDuration duration={totalDuration} />
         )}
 
         <div className="px-6 pt-2 pb-8">
@@ -87,8 +83,14 @@ const Step9ProcessImages: React.FC = () => {
             <GlobalLoading />
           )}
 
-          {!globalLoading && (
+          {!globalLoading && searchState === 'done' && processed.length > 0 && (
             <ImageGrid processed={processed} handleRetry={handleRetry} />
+          )}
+
+          {!globalLoading && searchState === 'done' && processed.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No processed images found</p>
+            </div>
           )}
 
           {searchError && !globalLoading && (

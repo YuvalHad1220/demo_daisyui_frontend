@@ -5,7 +5,7 @@ interface UploadAreaProps {
   selectedFilesCount: number;
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const UploadArea: React.FC<UploadAreaProps> = ({
