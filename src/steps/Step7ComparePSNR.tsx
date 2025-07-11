@@ -54,7 +54,7 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
         )}
 
         {/* Video Players Grid */}
-        <div className="p-6 flex-1 overflow-auto">
+        <div className="p-6 flex-1 overflow-visible">
           <VideoPlayersGrid
             videoRefs={videoRefs}
             loadingStates={loadingStates}

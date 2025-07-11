@@ -69,9 +69,9 @@ const VideoControls: React.FC<VideoControlsProps> = ({
             max={duration}
             value={currentTime}
             onChange={handleScrubberChange}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer transition-all duration-150"
+            className="w-full h-2 rounded-lg appearance-none cursor-pointer transition-all duration-150"
             style={{
-              background: `linear-gradient(to right, #14b8a6 0%, #14b8a6 ${(currentTime / duration) * 100}%, #e5e7eb ${(currentTime / duration) * 100}%, #e5e7eb 100%)`
+              background: `linear-gradient(to right, #f7eee6 0%, #f7eee6 ${(currentTime / duration) * 100}%, #e8e6e3 ${(currentTime / duration) * 100}%, #e8e6e3 100%)`
             }}
           />
         </div>

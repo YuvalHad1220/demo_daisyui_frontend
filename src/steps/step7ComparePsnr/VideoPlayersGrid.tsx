@@ -29,7 +29,7 @@ const VideoPlayersGrid: React.FC<VideoPlayersGridProps> = ({
     <div className="grid grid-cols-2 gap-4 mb-6">
       {Object.entries(videoRefs).map(([codec, ref]) => (
         <div key={codec} className="relative">
-          <div className="aspect-video bg-gray-50 rounded-lg overflow-hidden border relative" style={{ borderColor: '#e5e7eb' }}>
+          <div className="aspect-video rounded-lg overflow-hidden border relative" style={{ background: '#fdfcfb', borderColor: '#e5e7eb' }}>
             {loadingStates[codec] ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="flex items-center space-x-2">

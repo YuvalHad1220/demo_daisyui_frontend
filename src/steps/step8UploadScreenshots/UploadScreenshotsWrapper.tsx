@@ -138,7 +138,7 @@ const UploadScreenshotsWrapper: React.FC<UploadScreenshotsWrapperProps> = ({ onR
       onResetClick={handleReset}
       resetting={resetting}
     >
-      <div className="px-6 py-8 flex-1 flex flex-col">
+      <div className="px-6 py-8 flex-1 flex flex-col rounded-xl min-h-[600px]">
         {showUploadUI && (
           <>
             <UploadArea
@@ -148,7 +148,7 @@ const UploadScreenshotsWrapper: React.FC<UploadScreenshotsWrapperProps> = ({ onR
               fileInputRef={fileInputRef}
             />
             {selectedFiles.length > 0 && (
-              <div className="mt-8">
+              <div className="mt-4">
                 <SelectedFilesGrid
                   selectedFiles={selectedFiles}
                   handleRemoveFile={(index) => setSelectedFiles(prev => prev.filter((_, i) => i !== index))}

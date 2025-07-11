@@ -22,12 +22,12 @@ const UploadArea: React.FC<UploadAreaProps> = ({
     <div className="flex flex-col items-center space-y-6 animate-fade-in">
       <div
         className="w-full max-w-md border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors hover:border-orange-400"
-        style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb' }}
+        style={{ borderColor: '#d1d5db', backgroundColor: '#fdfcfb' }}
         onDrop={onDrop}
         onDragOver={handleDragOver}
         onClick={() => fileInputRef.current?.click()}
       >
-        <Upload className="w-12 h-12 mx-auto mb-4" style={{ color: '#9ca3af' }} />
+        <Upload className="w-12 h-12 mx-auto" style={{ color: '#9ca3af' }} />
         <p className="text-lg font-medium" style={{ color: '#111827' }}>
           Upload Screenshots
         </p>
