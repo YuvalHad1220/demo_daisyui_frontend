@@ -222,23 +222,6 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
     }
   }, [allVideosLoaded]);
 
-  useEffect(() => {
-    // Update PSNR values in real-time
-    const interval = setInterval(() => {
-      if (isPlaying && allVideosLoaded) {
-        setPsnrData(prev => ({
-          ours: prev.ours + (Math.random() - 0.5) * 0.5,
-          h264: prev.h264 + (Math.random() - 0.5) * 0.5,
-          h265: prev.h265 + (Math.random() - 0.5) * 0.5,
-          av1: prev.av1 + (Math.random() - 0.5) * 0.5
-        }));
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isPlaying, allVideosLoaded]);
-
-  // FIXED: Enhanced event handlers for synchronization
   const handleHlsReady = useCallback(() => {
     console.log('HLS player ready event fired');
     setReadyStates(prev => ({ ...prev, ours: true }));
