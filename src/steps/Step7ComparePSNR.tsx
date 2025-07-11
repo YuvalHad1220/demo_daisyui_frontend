@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
@@ -20,6 +20,7 @@ const VideoDisplay = React.memo(({
   onHlsBuffering,
   onVideoReady,
   onVideoBuffering,
+  compressionRatio,
 }: any) => {
   const handleLoadedData = useCallback(() => onVideoReady(codec), [onVideoReady, codec]);
   const handleWaiting = useCallback(() => onVideoBuffering(codec, true), [onVideoBuffering, codec]);
@@ -37,6 +38,7 @@ const VideoDisplay = React.memo(({
           onError={onError}
           onReady={onHlsReady}
           onBuffering={onHlsBuffering}
+          compressionRatio={compressionRatio}
           className="w-full h-full object-contain"
           muted
           controls={false}
@@ -100,6 +102,7 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
     allVideosLoaded,
     videoUrls,
     videoRefs,
+    compressionRatio, // Get compression ratio from the hook
     handlePlayPause,
     handleSkip,
     handleScrubberChange,
@@ -112,6 +115,8 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
     handleVideoReady,
     handleVideoBuffering,
   } = psnrComparison;
+
+
 
   const handleResetClick = () => {
     psnrComparisonReset();
@@ -197,6 +202,7 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
                 onHlsBuffering={handleHlsBuffering}
                 onVideoReady={handleVideoReady}
                 onVideoBuffering={handleVideoBuffering}
+                compressionRatio={compressionRatio}
               />
               <VideoOverlay
                 codec={codec}

@@ -28,6 +28,7 @@ export interface HlsPlayerProps {
   className?: string;
   style?: React.CSSProperties;
   playbackRate?: number;
+  compressionRatio?: number; // New prop for dynamic compression ratio
 }
 
 export interface HlsPlayerRef {
@@ -60,10 +61,14 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
   preload = 'metadata',
   className = '',
   style = {},
-  playbackRate = (39 / 7), // Default is the diff between input and decoded output
+  playbackRate,
+  compressionRatio = 30/7, // Default compression ratio (decoded is longer)
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+
+  // Use compressionRatio as playbackRate if no explicit playbackRate is provided
+  const effectivePlaybackRate = playbackRate || compressionRatio;
 
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current && onTimeUpdate) {
@@ -189,14 +194,14 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
         hlsRef.current.attachMedia(videoRef.current);
 
         // Apply playbackRate
-        if (videoRef.current && playbackRate && playbackRate !== 1.0) {
-          videoRef.current.playbackRate = playbackRate;
+        if (videoRef.current && effectivePlaybackRate && effectivePlaybackRate !== 1.0) {
+          videoRef.current.playbackRate = effectivePlaybackRate;
         }
 
         hlsRef.current.on(Hls.Events.MANIFEST_PARSED, () => {
           console.log('HlsPlayer: HLS manifest parsed, video ready to play');
           if (videoRef.current) {
-            videoRef.current.playbackRate = playbackRate || 1.0;
+            videoRef.current.playbackRate = effectivePlaybackRate || 1.0;
             if (videoRef.current.duration) {
               onLoadedMetadata?.(videoRef.current.duration);
             }
@@ -232,7 +237,7 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
       } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
         console.log('HlsPlayer: Using native HLS support');
         videoRef.current.src = src;
-        videoRef.current.playbackRate = playbackRate || 1.0;
+        videoRef.current.playbackRate = effectivePlaybackRate || 1.0;
       } else {
         onError?.('HLS playback not supported in this browser');
       }
@@ -240,7 +245,7 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
       // Regular video files
       console.log('HlsPlayer: Using regular video playback');
       videoRef.current.src = src;
-      videoRef.current.playbackRate = playbackRate || 1.0;
+      videoRef.current.playbackRate = effectivePlaybackRate || 1.0;
     }
 
     return () => {
@@ -249,14 +254,14 @@ const HlsPlayer = memo(forwardRef<HlsPlayerRef, HlsPlayerProps>(({
         hlsRef.current = null;
       }
     };
-  }, [src, playbackRate, onLoadedMetadata, onError, onBuffering, onReady]);
+  }, [src, effectivePlaybackRate, onLoadedMetadata, onError, onBuffering, onReady]);
 
   // Reactively apply playbackRate on changes
   useEffect(() => {
-    if (videoRef.current && playbackRate && playbackRate !== 1.0) {
-      videoRef.current.playbackRate = playbackRate;
+    if (videoRef.current && effectivePlaybackRate && effectivePlaybackRate !== 1.0) {
+      videoRef.current.playbackRate = effectivePlaybackRate;
     }
-  }, [playbackRate]);
+  }, [effectivePlaybackRate]);
 
   return (
     <video

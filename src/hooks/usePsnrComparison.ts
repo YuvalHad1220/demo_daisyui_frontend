@@ -41,6 +41,7 @@ interface UsePsnrComparisonReturn {
     h265: React.RefObject<HTMLVideoElement | null>;
     av1: React.RefObject<HTMLVideoElement | null>;
   };
+  compressionRatio: number; // Add compression ratio to the interface
   handlePlayPause: () => void;
   handleSkip: (direction: 'forward' | 'backward') => void;
   handleScrubberChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -54,7 +55,7 @@ interface UsePsnrComparisonReturn {
   handleVideoBuffering: (codec: string, buffering: boolean) => void;
 }
 
-export const usePsnrComparison = (key: string): UsePsnrComparisonReturn => {
+export const usePsnrComparison = (key: string, originalVideoDuration?: number): UsePsnrComparisonReturn => {
   
   const { videoDataMap, loading, fetchData } = useCodecDataFetch(key || '');
 
@@ -77,6 +78,23 @@ export const usePsnrComparison = (key: string): UsePsnrComparisonReturn => {
     av1: av1Ref
   }), []);
 
+  // Track HLS video duration to calculate compression ratio
+  const [hlsDuration, setHlsDuration] = useState<number>(0);
+
+  // Calculate compression ratio when we have both durations
+  const compressionRatio = useMemo(() => {
+    if (hlsDuration > 0 && originalVideoDuration && originalVideoDuration > 0) {
+      // The HLS video is LONGER than the original, so we need to SPEED IT UP
+      // HLS duration / Original duration = how much faster the HLS should play
+      const ratio = hlsDuration / originalVideoDuration;
+      console.log('Compression ratio calculated:', { hlsDuration, originalVideoDuration, ratio });
+      return ratio;
+    }
+    
+    // Fallback to default ratio if we don't have the data yet
+    return 30/7; // Decoded is longer, so speed up ratio > 1
+  }, [hlsDuration, originalVideoDuration]);
+
   // Construct video URLs
   const getVideoUrls = useMemo(() => {
     const urls: Record<string, string> = {
@@ -97,9 +115,12 @@ export const usePsnrComparison = (key: string): UsePsnrComparisonReturn => {
     console.log('Video URLs:', urls);
     console.log('Video Data Map:', videoDataMap);
     console.log('Key:', key);
+    console.log('Original Video Duration:', originalVideoDuration);
+    console.log('HLS Duration:', hlsDuration);
+    console.log('Compression Ratio:', compressionRatio);
 
     return urls;
-  }, [videoDataMap, key]);
+  }, [videoDataMap, key, originalVideoDuration, hlsDuration, compressionRatio]);
 
   const [psnrState, setPsnrState] = useState<PsnrComparisonState>('loading');
   const [error, setError] = useState<string>('');
@@ -337,9 +358,10 @@ export const usePsnrComparison = (key: string): UsePsnrComparisonReturn => {
     const newTime = Math.max(0, Math.min(duration, currentTime + skipTime));
     setCurrentTime(newTime);
     
-    // Seek all videos
+    // Seek all videos with ratio adjustment for "ours"
     if (oursRef.current) {
-      oursRef.current.seek(newTime);
+      const oursSeekTime = newTime * compressionRatio; // Apply ratio for longer video
+      oursRef.current.seek(oursSeekTime);
     }
     
     [h264Ref, h265Ref, av1Ref].forEach(ref => {
@@ -347,7 +369,7 @@ export const usePsnrComparison = (key: string): UsePsnrComparisonReturn => {
         ref.current.currentTime = newTime;
       }
     });
-  }, [currentTime, duration, allVideosLoaded, oursRef, h264Ref, h265Ref, av1Ref]);
+  }, [currentTime, duration, allVideosLoaded, oursRef, h264Ref, h265Ref, av1Ref, compressionRatio]);
 
   const handleScrubberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (!allVideosLoaded) return;
@@ -355,9 +377,10 @@ export const usePsnrComparison = (key: string): UsePsnrComparisonReturn => {
     const newTime = parseFloat(e.target.value);
     setCurrentTime(newTime);
     
-    // Seek all videos
+    // Seek all videos with ratio adjustment for "ours"
     if (oursRef.current) {
-      oursRef.current.seek(newTime);
+      const oursSeekTime = newTime * compressionRatio; // Apply ratio for longer video
+      oursRef.current.seek(oursSeekTime);
     }
     
     [h264Ref, h265Ref, av1Ref].forEach(ref => {
@@ -365,21 +388,26 @@ export const usePsnrComparison = (key: string): UsePsnrComparisonReturn => {
         ref.current.currentTime = newTime;
       }
     });
-  }, [allVideosLoaded, oursRef, h264Ref, h265Ref, av1Ref]);
+  }, [allVideosLoaded, oursRef, h264Ref, h265Ref, av1Ref, compressionRatio]);
 
   const handleVideoTimeUpdate = useCallback(() => {
-    // Use the HLS player's time as the source of truth
+    // Use the HLS player's time as the source of truth, but convert back to original timeline
     if (oursRef.current) {
-      setCurrentTime(oursRef.current.currentTime);
+      const hlsTime = oursRef.current.currentTime;
+      const originalTime = hlsTime / compressionRatio; // Convert back from sped-up timeline
+      setCurrentTime(originalTime);
     }
-  }, [oursRef]);
+  }, [oursRef, compressionRatio]);
 
   const handleVideoLoadedMetadata = useCallback(() => {
-    // Use the HLS player's duration as the source of truth
+    // Use the HLS player's duration as the source of truth, but convert back to original timeline
     if (oursRef.current) {
-      setDuration(oursRef.current.duration);
+      const hlsDuration = oursRef.current.duration;
+      setHlsDuration(hlsDuration); // Update hlsDuration state for ratio calculation
+      const originalDuration = hlsDuration / compressionRatio; // Convert back from sped-up timeline
+      setDuration(originalDuration);
     }
-  }, [oursRef]);
+  }, [oursRef, compressionRatio]);
 
   const handleReset = useCallback(() => {
     setIsPlaying(false);
@@ -436,6 +464,7 @@ export const usePsnrComparison = (key: string): UsePsnrComparisonReturn => {
     allVideosLoaded,
     videoUrls: getVideoUrls,
     videoRefs,
+    compressionRatio, // Add compression ratio to the return
     handlePlayPause,
     handleSkip,
     handleScrubberChange,
@@ -459,6 +488,7 @@ export const usePsnrComparison = (key: string): UsePsnrComparisonReturn => {
     allVideosLoaded,
     getVideoUrls,
     videoRefs,
+    compressionRatio, // Add compression ratio to dependencies
     handlePlayPause,
     handleSkip,
     handleScrubberChange,

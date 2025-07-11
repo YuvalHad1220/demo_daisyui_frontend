@@ -4,7 +4,7 @@ import { useFileUpload } from './useFileUpload';
 import { useEncoding } from './useEncoding';
 import { useDecoding, type DecodingState } from './useDecoding';
 import { useScreenshotSearch } from './useScreenshotSearch';
-import { usePsnrComparison, type CodecVideoRefs, type PsnrComparisonState } from './usePsnrComparison';
+import { usePsnrComparison, type PsnrComparisonState } from './usePsnrComparison';
 import { useToast } from './useToast';
 import ToastContainer from '../components/ui/ToastContainer';
 import Step1FileUpload from '../steps/Step1FileUpload';
@@ -101,7 +101,9 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const screenshotSearch = useScreenshotSearch(fileUpload.uploadedFile?.key);
   const toast = useToast();
 
-  const psnrComparison = usePsnrComparison(fileUpload.uploadedFile?.key || '');
+
+
+  const psnrComparison = usePsnrComparison(fileUpload.uploadedFile?.key || '', fileUpload.uploadedFile?.duration);
 
   const workflowConfig = useMemo((): StepGroup[] => [
     {
