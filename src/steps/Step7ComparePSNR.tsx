@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
-import { BarChart3 } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { BarChart3, Maximize } from 'lucide-react';
 import { ErrorAlert } from '../components/ui/ErrorAlert';
 import { StageCard } from '../components/ui/StageCard';
 import { useWorkflow } from '../hooks/WorkflowContext';
@@ -22,10 +22,66 @@ const VideoDisplay = React.memo(({
   onVideoBuffering,
   compressionRatio,
 }: any) => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
   const handleLoadedData = useCallback(() => onVideoReady(codec), [onVideoReady, codec]);
   const handleWaiting = useCallback(() => onVideoBuffering(codec, true), [onVideoBuffering, codec]);
   const handleCanPlay = useCallback(() => onVideoBuffering(codec, false), [onVideoBuffering, codec]);
   const onError = useCallback(() => handleVideoError(codec), [handleVideoError, codec]);
+
+  const handleFullscreen = useCallback(() => {
+    const videoElement = codec === 'ours' ? videoRef.current?.videoElement : videoRef.current;
+    if (!videoElement) return;
+
+    if (!isFullscreen) {
+      if (videoElement.requestFullscreen) {
+        videoElement.requestFullscreen();
+      } else if ((videoElement as any).webkitRequestFullscreen) {
+        (videoElement as any).webkitRequestFullscreen();
+      } else if ((videoElement as any).mozRequestFullScreen) {
+        (videoElement as any).mozRequestFullScreen();
+      } else if ((videoElement as any).msRequestFullscreen) {
+        (videoElement as any).msRequestFullscreen();
+      }
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      } else if ((document as any).mozCancelFullScreen) {
+        (document as any).mozCancelFullScreen();
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+      }
+      setIsFullscreen(false);
+    }
+  }, [codec, videoRef, isFullscreen]);
+
+  // Listen for fullscreen change events
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
 
   return (
     <div className="aspect-video rounded-lg overflow-hidden border relative bg-gray-900">
@@ -57,6 +113,15 @@ const VideoDisplay = React.memo(({
           muted
         />
       )}
+      
+      {/* Fullscreen button */}
+      <button
+        onClick={handleFullscreen}
+        className="absolute bottom-2 right-2 p-2 rounded-lg bg-black bg-opacity-70 hover:bg-opacity-90 transition-all duration-200 text-white z-10"
+        title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+      >
+        <Maximize className="w-4 h-4" />
+      </button>
     </div>
   );
 });
@@ -165,6 +230,14 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
                     {codecNames[codec]}
                   </span>
                 </div>
+                {/* Fullscreen button (disabled during loading) */}
+                <button
+                  disabled
+                  className="absolute bottom-2 right-2 p-2 rounded-lg bg-black bg-opacity-30 text-white cursor-not-allowed z-10"
+                  title="Fullscreen (unavailable while loading)"
+                >
+                  <Maximize className="w-4 h-4" />
+                </button>
               </div>
             ))}
           </div>

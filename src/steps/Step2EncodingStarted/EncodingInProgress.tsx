@@ -7,22 +7,16 @@ interface EncodingInProgressProps {
 }
 
 const EncodingInProgress: React.FC<EncodingInProgressProps> = ({ progress, eta }) => (
-  <div className="flex flex-col items-center space-y-6 animate-fade-in">
+  <div className="flex flex-col items-center space-y-6 animate-fade-in w-full">
     <div className="flex flex-col items-center mb-2">
       <LoadingCircular size="md" className="mb-4" />
       <span className="font-semibold text-xl" style={{ color: '#111827' }}>Encoding Video</span>
     </div>
     
     {/* Progress Display */}
-    <div className="text-center space-y-2">
-      <div className="text-sm font-medium" style={{ color: '#6b7280' }}>
-        {typeof progress === 'number' ? `Progress: ${progress}%` : `Progress: ${progress}`}
-      </div>
-      {eta && (
-        <div className="text-xs" style={{ color: '#9ca3af' }}>
-          ETA: {eta}
-        </div>
-      )}
+    <div className="w-full mx-auto max-w-lg">
+      {/* DaisyUI indeterminate progress bar */}
+      <progress className="progress progress-warning w-full"></progress>
     </div>
     
     <p className="text-sm font-medium" style={{ color: '#6b7280' }}>

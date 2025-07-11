@@ -195,30 +195,53 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
 
       switch (step.label) {
         case 'File Upload':
+          // Format duration as mm:ss
+          const durationSec = summary.duration || 0;
+          const mins = Math.floor(durationSec / 60);
+          const secs = Math.floor(durationSec % 60);
+          const formattedDuration = `${mins}:${secs.toString().padStart(2, '0')}`;
+          // Format size as X.X MB
+          let formattedSize = '--';
+          if (typeof summary.size === 'string' && summary.size.includes('MB')) {
+            formattedSize = summary.size;
+          } else if (typeof summary.size === 'number') {
+            formattedSize = `${(summary.size / (1024 * 1024)).toFixed(1)} MB`;
+          }
           return (
             <>
+              <SidebarStat icon={Clock} value={formattedDuration} className="bg-blue-50 text-blue-700" />
+              <SidebarStat icon={HardDrive} value={formattedSize} className="bg-purple-50 text-purple-700" />
               <SidebarStat icon={Monitor} value={getResolutionLabel(summary.width, summary.height)} className="bg-green-50 text-green-700" />
-              <SidebarStat icon={HardDrive} value={summary.size} className="bg-purple-50 text-purple-700" />
-              <SidebarStat icon={Clock} value={`${summary.duration}s`} className="bg-blue-50 text-blue-700" />
             </>
           );
         case 'Encoding Finished':
           if (!summary.inputSize || !summary.outputSize || !summary.duration) return null;
-          const compression = Math.round(((summary.inputSize - summary.outputSize) / summary.inputSize) * 100);
+          // Processing time (1 decimal)
+          const processingTime = typeof summary.duration === 'number' ? `${summary.duration.toFixed(1)}s` : '--';
+          // Compression ratio as X.Xx (to match main card)
+          const ratio = summary.inputSize && summary.outputSize ? (summary.inputSize / summary.outputSize) : null;
+          const compressionRatioStr = ratio ? `${ratio.toFixed(1)}x` : '--';
+          // PSNR (1 decimal, dB) - if available
+          const psnr = encoding.encodingResult?.psnr !== undefined ? `${encoding.encodingResult.psnr.toFixed(1)} dB` : '--';
           return (
             <>
-              <SidebarStat icon={Clock} value={`${summary.duration}s`} className="bg-blue-50 text-blue-700" />
-              <SidebarStat icon={TrendingDown} value={`~${compression}%`} className="bg-teal-50 text-teal-700" />
-              <SidebarStat icon={BarChart2} value={`${summary.outputSize.toFixed(2)}MB`} className="bg-purple-50 text-purple-700" />
+              <SidebarStat icon={Clock} value={processingTime} className="bg-blue-50 text-blue-700" />
+              <SidebarStat icon={HardDrive} value={compressionRatioStr} className="bg-purple-50 text-purple-700" />
+              <SidebarStat icon={BarChart2} value={psnr} className="bg-yellow-50 text-yellow-700" />
             </>
           );
         case 'Decoding Finished':
-          if (!summary.duration || !summary.frames || !summary.psnr) return null;
+          if (!summary.duration || !summary.psnr) return null;
+          // Format duration as mm:ss
+          const decMins = Math.floor(summary.duration / 60);
+          const decSecs = Math.floor(summary.duration % 60);
+          const formattedDecodingTime = `${decMins}:${decSecs.toString().padStart(2, '0')}`;
+          // Format PSNR as X.X dB
+          const formattedPsnr = `${summary.psnr.toFixed(1)} dB`;
           return (
             <>
-              <SidebarStat icon={Clock} value={`${summary.duration}s`} className="bg-blue-50 text-blue-700" />
-              <SidebarStat icon={Hash} value={`${summary.frames}f`} className="bg-orange-50 text-orange-600" />
-              <SidebarStat icon={Signal} value={`${summary.psnr}dB`} className="bg-yellow-50 text-yellow-700" />
+              <SidebarStat icon={Clock} value={formattedDecodingTime} className="bg-blue-50 text-blue-700" />
+              <SidebarStat icon={Signal} value={formattedPsnr} className="bg-yellow-50 text-yellow-700" />
             </>
           );
         case 'Process Images':
@@ -233,7 +256,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
           return null;
       }
     });
-  }, [allSteps, stepSummaries]);
+  }, [allSteps, stepSummaries, encoding.encodingResult]);
 
   const groupStartIndices = useMemo(() => {
     let idx = 0;
@@ -423,6 +446,45 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
 
 export function useWorkflow() {
   const ctx = useContext(WorkflowContext);
-  if (!ctx) throw new Error('useWorkflow must be used within a WorkflowProvider');
+  
+  // During development hot reloading, the context might temporarily be undefined
+  // Return a fallback context instead of throwing an error
+  if (!ctx) {
+    // Log a warning but don't throw during hot reloading
+    console.warn('useWorkflow called outside of WorkflowProvider - this may happen during hot reloading');
+    // Return a minimal fallback context to prevent crashes
+    return {
+      currentStep: 0,
+      setCurrentStep: () => {},
+      completedSteps: new Set(),
+      workflowConfig: [],
+      allSteps: [],
+      stepSummaries: [],
+      stepMetadata: [],
+      currentGroup: { label: '', steps: [] },
+      currentGroupIndex: 0,
+      currentStepLabel: '',
+      stepsInCurrentGroup: [],
+      groupStartIndices: [],
+      isFirstStep: true,
+      isLastStep: false,
+      goToStep: () => {},
+      goToPrevious: () => {},
+      goToNext: () => {},
+      canGoToStep: () => false,
+      isStepCompleted: () => false,
+      markStepAsCompleted: () => {},
+      getStepSummary: () => null,
+      getCurrentStepSummary: () => null,
+      resetGroup: () => {},
+      fileUpload: {} as ReturnType<typeof useFileUpload>,
+      encoding: {} as ReturnType<typeof useEncoding>,
+      decoding: {} as ReturnType<typeof useDecoding>,
+      screenshotSearch: {} as ReturnType<typeof useScreenshotSearch>,
+      psnrComparison: {} as ReturnType<typeof usePsnrComparison>,
+      toast: {} as ReturnType<typeof useToast>,
+    } as WorkflowContextType;
+  }
+  
   return ctx;
 } 

@@ -29,6 +29,7 @@ const VideoPlayerSection: React.FC<VideoPlayerSectionProps> = ({
   const hlsPlayerRef = useRef<HlsPlayerRef>(null);
 
   const formatTime = (sec: number) => {
+    if (!isFinite(sec) || sec < 0) return '0:00';
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
@@ -72,23 +73,27 @@ const VideoPlayerSection: React.FC<VideoPlayerSectionProps> = ({
         </div>
       )}
 
-      <div className="w-full max-w-xl aspect-video rounded-lg flex items-center justify-center overflow-hidden border mb-2" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
-        <HlsPlayer
-          ref={hlsPlayerRef}
-          src={decodedVideoUrl}
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onError={setError}
-          className="w-full h-full object-contain rounded-lg"
-          style={{ background: '#fdfcfb' }}
-          controls
-        />
+      <div className="w-full flex justify-center mb-2">
+        <div className="max-w-xl aspect-video rounded-lg flex items-center justify-center overflow-hidden border" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
+          <HlsPlayer
+            ref={hlsPlayerRef}
+            src={decodedVideoUrl}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onError={setError}
+            className="w-full h-full object-contain rounded-lg"
+            style={{ background: '#fdfcfb' }}
+            controls
+          />
+        </div>
       </div>
       
-      <div className="w-full max-w-xl mb-6" style={{ textAlign: 'left' }}>
-        <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace', fontWeight: 400 }}>
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </span>
+      <div className="w-full flex justify-center mb-6">
+        <div className="max-w-xl" style={{ textAlign: 'left' }}>
+          <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace', fontWeight: 400 }}>
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
+        </div>
       </div>
     </>
   );

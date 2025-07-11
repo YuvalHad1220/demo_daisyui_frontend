@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, TrendingDown, BarChart2 } from 'lucide-react';
+import { Clock, TrendingDown, BarChart2, HardDrive } from 'lucide-react';
 import { FileInfoCard } from '../../components/ui/FileInfoCard';
 
 interface EncodingStatsProps {
@@ -18,16 +18,16 @@ const EncodingStats: React.FC<EncodingStatsProps> = ({ datasetCreationTime, comp
       value={`${datasetCreationTime.toFixed(1)}s`}
     />
     <FileInfoCard
-      icon={TrendingDown}
-      iconColor="#14b8a6"
-      backgroundColor="#f0fdfa"
+      icon={HardDrive}
+      iconColor="#7c3aed"
+      backgroundColor="#faf5ff"
       label="Compression Ratio"
       value={`${compressionRatio.toFixed(1)}x`}
     />
     <FileInfoCard
       icon={BarChart2}
-      iconColor="#7c3aed"
-      backgroundColor="#faf5ff"
+      iconColor="#eab308"
+      backgroundColor="#fef9c3"
       label="PSNR (estimated)"
       value={`${psnr.toFixed(1)} dB`}
     />

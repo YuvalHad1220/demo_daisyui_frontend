@@ -124,13 +124,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         )}
       </div>
 
-      {/* Footer - left-aligned time display */}
+      {/* Footer - centered time display */}
       <div className="px-6 pb-6 flex-shrink-0">
-        <div className="w-full flex items-center">
-          {/* Time Display (left) */}
-          <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace', fontWeight: 400 }}>
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </span>
+        <div className="w-full flex justify-center">
+          <div className="max-w-4xl w-full" style={{ textAlign: 'left' }}>
+            <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace', fontWeight: 400 }}>
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+          </div>
         </div>
       </div>
     </>
