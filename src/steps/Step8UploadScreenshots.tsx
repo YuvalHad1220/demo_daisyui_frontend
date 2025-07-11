@@ -93,6 +93,7 @@ const Step8UploadScreenshots: React.FC<{ onResetGroup: () => void }> = ({ onRese
         const file = selectedFiles[i];
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('key', fileUpload.uploadedFile?.key || '');
 
         const response = await fetch('http://localhost:9000/upload_vector_image', {
           method: 'POST',

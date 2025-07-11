@@ -20,7 +20,9 @@ const Step5DecodedVideo: React.FC<{ onResetGroup: () => void; isFirstStepInGroup
   // Construct HLS URL from uploaded filename
   const getDecodedVideoUrl = (): string => {
     const filename = fileUpload.uploadedFile?.name?.replace('.mp4', '') || '';
-    return `http://localhost:9000/hls/${filename}/decoded/stream.m3u8`;
+    const key = fileUpload.uploadedFile?.key;
+    const keyParam = key ? `?key=${encodeURIComponent(key)}` : '';
+    return `http://localhost:9000/hls/${filename}/decoded/stream.m3u8${keyParam}`;
   };
 
   const decodedVideoUrl = getDecodedVideoUrl();

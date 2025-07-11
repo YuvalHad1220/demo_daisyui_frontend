@@ -37,11 +37,31 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   // HLS setup
   useEffect(() => {
-    if (decodedVideoUrl && decodedVideoUrl.endsWith('.m3u8') && videoRef.current) {
+    if (decodedVideoUrl && decodedVideoUrl.includes('.m3u8') && videoRef.current) {
       if (Hls.isSupported()) {
-        const hls = new Hls({ debug: true });
+        const hls = new Hls({ 
+          debug: true,
+          xhrSetup: (xhr, url) => {
+            // Ensure proper headers for HLS requests
+            xhr.setRequestHeader('Accept', 'application/vnd.apple.mpegurl, application/x-mpegURL, text/plain, */*');
+          }
+        });
+        
         hls.loadSource(decodedVideoUrl);
         hls.attachMedia(videoRef.current);
+        
+        // Add HLS event listeners for better duration handling
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (videoRef.current && videoRef.current.duration) {
+            onLoadedMetadata(videoRef.current.duration);
+          }
+        });
+        
+        hls.on(Hls.Events.LEVEL_LOADED, () => {
+          if (videoRef.current && videoRef.current.duration) {
+            onLoadedMetadata(videoRef.current.duration);
+          }
+        });
 
         return () => {
           hls?.destroy();
@@ -63,6 +83,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       onLoadedMetadata(videoRef.current.duration);
     }
   };
+
+
 
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60);
@@ -113,7 +135,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onLoadedMetadata={handleLoadedMetadata}
               onError={() => onError('Failed to load video.')}
               autoPlay
-              {...(!decodedVideoUrl?.endsWith('.m3u8') && { src: decodedVideoUrl })}
+              {...(!decodedVideoUrl?.includes('.m3u8') && { src: decodedVideoUrl })}
             />
           ) : (
             <div className="flex flex-col items-center justify-center space-y-3 opacity-40">

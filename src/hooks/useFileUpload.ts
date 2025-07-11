@@ -49,11 +49,49 @@ export const useFileUpload = (): FileUploadHookReturn => {
     setError('');
     setUploadState('uploading');
     setUploadProgress(0);
+    
     try {
+      // First, try to get or create key for existing file
+      const getKeyResponse = await fetch('http://localhost:9000/get_or_create_key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name }),
+      });
+
+      if (getKeyResponse.ok) {
+        const keyData = await getKeyResponse.json();
+        
+        if (keyData.result === 'ok') {
+          // File already exists on disk, use existing session
+          console.log(`File '${file.name}' already exists, using existing session with key '${keyData.key}'`);
+          
+          const url = URL.createObjectURL(file); // Still use this for local preview
+          
+          const uploaded: VideoFile = {
+            name: keyData.filename,
+            size: keyData.file_size || file.size, // Use backend size if available, fallback to file size
+            type: keyData.content_type,
+            url,
+            saved_path: keyData.saved_path,
+            key: keyData.key,
+          };
+
+          setUploadedFile(uploaded);
+          setUploadState('uploaded');
+          setUploadProgress(100);
+          setError('');
+          return; // Exit early, no need to upload
+        } else if (keyData.result === 'not_found') {
+          // File doesn't exist, proceed with upload
+          console.log(`File '${file.name}' not found, proceeding with upload`);
+        }
+      }
+
+      // File doesn't exist or get_or_create_key failed, proceed with upload
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://127.0.0.1:9000/upload_video', {
+      const response = await fetch('http://localhost:9000/upload_video', {
         method: 'POST',
         body: formData,
       });
@@ -72,6 +110,7 @@ export const useFileUpload = (): FileUploadHookReturn => {
         type: result.content_type,
         url,
         saved_path: result.saved_path, // Store the saved path from backend
+        key: result.key, // Store the key from backend response
       };
 
       setUploadedFile(uploaded);
@@ -89,8 +128,15 @@ export const useFileUpload = (): FileUploadHookReturn => {
   const reset = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://127.0.0.1:9000/reset_file_upload', {
+      const key = uploadedFile?.key;
+      if (!key) {
+        throw new Error('No key available for reset');
+      }
+
+      const response = await fetch('http://localhost:9000/reset_file_upload', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
       });
 
       if (!response.ok) {
@@ -108,7 +154,7 @@ export const useFileUpload = (): FileUploadHookReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [uploadedFile?.key]);
 
   const updateVideoMetadata = useCallback((duration?: number, width?: number, height?: number) => {
     setUploadedFile(prev => prev ? {

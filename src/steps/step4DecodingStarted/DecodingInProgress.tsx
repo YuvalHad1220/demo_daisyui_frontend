@@ -35,9 +35,6 @@ const DecodingInProgress: React.FC<DecodingInProgressProps> = ({
           {eta}
         </span>
       </div>
-      <p className="text-xs mt-1" style={{ color: '#6b7280' }}>
-        Frame {currentFrame}/{totalFrames}
-      </p>
     </div>
   </div>
 );

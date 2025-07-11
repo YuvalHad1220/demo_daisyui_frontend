@@ -47,7 +47,7 @@ interface UseScreenshotSearchReturn {
   addUploadedImage: (filename: string, fileUrl: string) => void;
 }
 
-export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
+export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => {
   const [searchState, setSearchState] = useState<ScreenshotSearchState>('initial');
   const [searchError, setSearchError] = useState('');
   const [searchResult, setSearchResult] = useState<ScreenshotSearchResult | null>(null);
@@ -60,6 +60,24 @@ export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
     matchesFound: 0,
     processingMethod: 'Initializing...',
   });
+
+  // Reset state when key changes
+  useEffect(() => {
+    if (key) {
+      setSearchError('');
+      setSearchState('initial');
+      setSearchResult(null);
+      setUploadedImageUrls({});
+      setSearchProgress({
+        progress: 0,
+        eta: '25s',
+        currentFrame: 0,
+        totalFrames: 2400,
+        matchesFound: 0,
+        processingMethod: 'Initializing...',
+      });
+    }
+  }, [key]);
 
   // Start vector search process
   const startSearch = useCallback(async (videoPath: string, imagesPaths: string[]) => {
@@ -76,12 +94,16 @@ export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
     });
 
     try {
+      if (!key) {
+        throw new Error('No key available for vector search');
+      }
+      
       const response = await fetch('http://localhost:9000/start_vector_search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ video_path: videoPath, images_path: imagesPaths }),
+        body: JSON.stringify({ key, video_path: videoPath, images_path: imagesPaths }),
       });
 
       if (!response.ok) {
@@ -101,7 +123,7 @@ export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
       setSearchError(e.message || 'Vector search failed to start');
       setSearchState('error');
     }
-  }, []);
+  }, [key]);
 
   // Polling logic inside useEffect
   useEffect(() => {
@@ -109,7 +131,11 @@ export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
 
     const pollSearch = async () => {
       try {
-        const response = await fetch('http://localhost:9000/poll_vector_search');
+        if (!key) {
+          throw new Error('No key available for polling');
+        }
+        
+        const response = await fetch(`http://localhost:9000/poll_vector_search?key=${encodeURIComponent(key)}`);
         
         if (!response.ok) {
           throw new Error('Failed to poll vector search status');
@@ -129,7 +155,7 @@ export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
         if (finished) {
           // Fetch results from the backend
           try {
-            const resultsResponse = await fetch('http://localhost:9000/vector_search_results');
+            const resultsResponse = await fetch(`http://localhost:9000/vector_search_results?key=${encodeURIComponent(key)}`);
             if (resultsResponse.ok) {
               const response = await resultsResponse.json();
               const { result: resultStatus, data: searchData, metadata } = response;
@@ -210,7 +236,7 @@ export const useScreenshotSearch = (): UseScreenshotSearchReturn => {
         clearInterval(interval);
       }
     };
-  }, [searchState]);
+  }, [searchState, key]);
 
   // Reset search state
   const resetSearch = useCallback(async () => {

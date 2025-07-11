@@ -94,9 +94,9 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const fileUpload = useFileUpload();
-  const encoding = useEncoding(fileUpload.uploadedFile?.name || '', fileUpload.uploadedFile?.size || 0);
-  const decoding = useDecoding();
-  const screenshotSearch = useScreenshotSearch();
+  const encoding = useEncoding(fileUpload.uploadedFile?.name || '', fileUpload.uploadedFile?.size || 0, fileUpload.uploadedFile?.key);
+  const decoding = useDecoding(fileUpload.uploadedFile?.key);
+  const screenshotSearch = useScreenshotSearch(fileUpload.uploadedFile?.key);
   const toast = useToast();
 
   const workflowConfig = useMemo((): StepGroup[] => [

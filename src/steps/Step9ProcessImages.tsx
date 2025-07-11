@@ -7,7 +7,6 @@ import ImageGrid from './step9ProcessImages/ImageGrid';
 import GlobalError from './step9ProcessImages/GlobalError';
 
 const Step9ProcessImages: React.FC = () => {
-  const [globalLoading, setGlobalLoading] = useState(true);
   const [showDuration, setShowDuration] = useState(false);
 
   // Use the screenshot search hook from workflow context
@@ -21,23 +20,16 @@ const Step9ProcessImages: React.FC = () => {
     uploadedImageUrls
   } = screenshotSearch;
 
-  // Step 1: Initial preparation
+  // Show duration when search is done
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setGlobalLoading(false);
+    if (searchState === 'done' && searchResult) {
       setShowDuration(true);
-    }, 1500);
-
-    return () => clearTimeout(timeout);
-  }, []);
+    }
+  }, [searchState, searchResult]);
 
   const handleRetry = () => {
     resetSearch();
-    setGlobalLoading(true);
-
-    setTimeout(() => {
-      setGlobalLoading(false);
-    }, 1000);
+    setShowDuration(false);
   };
 
   // Transform backend results to match our interface
@@ -79,21 +71,27 @@ const Step9ProcessImages: React.FC = () => {
         )}
 
         <div className="px-6 pt-2 pb-8">
-          {globalLoading && (
+          {searchState === 'initial' && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Ready to process images</p>
+            </div>
+          )}
+
+          {searchState === 'searching' && (
             <GlobalLoading />
           )}
 
-          {!globalLoading && searchState === 'done' && processed.length > 0 && (
+          {searchState === 'done' && processed.length > 0 && (
             <ImageGrid processed={processed} handleRetry={handleRetry} />
           )}
 
-          {!globalLoading && searchState === 'done' && processed.length === 0 && (
+          {searchState === 'done' && processed.length === 0 && (
             <div className="text-center py-8">
               <p className="text-gray-500">No processed images found</p>
             </div>
           )}
 
-          {searchError && !globalLoading && (
+          {searchState === 'error' && (
             <GlobalError searchError={searchError} handleRetry={handleRetry} />
           )}
         </div>

@@ -41,7 +41,7 @@ interface UseDecodingReturn {
   takeScreenshot: () => Promise<string>;
 }
 
-export const useDecoding = (): UseDecodingReturn => {
+export const useDecoding = (key?: string): UseDecodingReturn => {
   const [decodingState, setDecodingState] = useState<DecodingState>('initial');
   const [decodingError, setDecodingError] = useState('');
   const [decodingResult, setDecodingResult] = useState<DecodingResult | null>(null);
@@ -49,6 +49,19 @@ export const useDecoding = (): UseDecodingReturn => {
     progress: 0,
     eta: '',
   });
+
+  // Reset state when key changes
+  useEffect(() => {
+    if (key) {
+      setDecodingError('');
+      setDecodingState('initial');
+      setDecodingResult(null);
+      setDecodingProgress({
+        progress: 0,
+        eta: '',
+      });
+    }
+  }, [key]);
 
   // Start decoding process
   const startDecode = useCallback(async () => {
@@ -60,7 +73,13 @@ export const useDecoding = (): UseDecodingReturn => {
       eta: '',
     });
     try {
-      const res = await fetch('http://localhost:9000/start_decode', {
+      if (!key) {
+        setDecodingError('No key available for decoding');
+        setDecodingState('error');
+        return;
+      }
+      
+      const res = await fetch(`http://localhost:9000/start_decode?key=${encodeURIComponent(key)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -73,7 +92,7 @@ export const useDecoding = (): UseDecodingReturn => {
       // Wait for backend to confirm start
       const checkStart = async () => {
         try {
-          const res = await fetch('http://localhost:9000/poll_decode_started');
+          const res = await fetch(`http://localhost:9000/poll_decode_started?key=${encodeURIComponent(key)}`);
           const { result: started } = await res.json();
           if (typeof started === 'number' && started > 0) {
             // Decoding started successfully
@@ -89,7 +108,7 @@ export const useDecoding = (): UseDecodingReturn => {
       setDecodingError('Start decode request failed');
       setDecodingState('error');
     }
-  }, []);
+  }, [key]);
 
   // Polling logic inside useEffect
   useEffect(() => {
@@ -97,7 +116,11 @@ export const useDecoding = (): UseDecodingReturn => {
 
     const pollDecode = async () => {
       try {
-        const response = await fetch('http://localhost:9000/poll_decode');
+        if (!key) {
+          throw new Error('No key available for polling');
+        }
+        
+        const response = await fetch(`http://localhost:9000/poll_decode?key=${encodeURIComponent(key)}`);
         if (!response.ok) {
           throw new Error('Failed to poll decoding status');
         }
@@ -116,7 +139,7 @@ export const useDecoding = (): UseDecodingReturn => {
         if (typeof end_time === 'number' && !isNaN(end_time)) {
           // Fetch metadata from the backend
           try {
-            const metadataResponse = await fetch('http://localhost:9000/metadata_decode');
+            const metadataResponse = await fetch(`http://localhost:9000/metadata_decode?key=${encodeURIComponent(key)}`);
             if (metadataResponse.ok) {
               const response = await metadataResponse.json();
               const meta = response.result;
@@ -166,15 +189,18 @@ export const useDecoding = (): UseDecodingReturn => {
         clearInterval(interval);
       }
     };
-  }, [decodingState]);
+  }, [decodingState, key]);
 
 
   const resetDecode = useCallback(async () => {
     try {
-      await fetch('http://localhost:9000/reset_decode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      if (key) {
+        await fetch('http://localhost:9000/reset_decode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key }),
+        });
+      }
     } catch (e) {
       // Optionally handle/log error, but always reset local state
     }
@@ -185,7 +211,7 @@ export const useDecoding = (): UseDecodingReturn => {
       progress: 0,
       eta: '',
     });
-  }, []);
+  }, [key]);
 
   const takeScreenshot = useCallback(async (): Promise<string> => {
     await new Promise(res => setTimeout(res, 200));

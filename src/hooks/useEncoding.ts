@@ -37,12 +37,23 @@ interface UseEncodingReturn {
   resetEncode: () => void;
 }
 
-export const useEncoding = (filename: string, inputSize: number): UseEncodingReturn => {
+export const useEncoding = (filename: string, inputSize: number, key?: string): UseEncodingReturn => {
   const [encodingState, setEncodingState] = useState<EncodingState>('initial');
   const [encodingError, setEncodingError] = useState('');
   const [encodingResult, setEncodingResult] = useState<EncodingResult | null>(null);
   const [progress, setProgress] = useState<number | string>(0);
   const [eta, setEta] = useState<string | null>(null);
+
+  // Reset state when key changes
+  useEffect(() => {
+    if (key) {
+      setEncodingError('');
+      setEncodingState('initial');
+      setEncodingResult(null);
+      setProgress(0);
+      setEta(null);
+    }
+  }, [key]);
 
   // Start encoding process
   const startEncode = useCallback(async () => {
@@ -53,12 +64,12 @@ export const useEncoding = (filename: string, inputSize: number): UseEncodingRet
     setEta(null);
 
     try {
-      const response = await fetch('http://127.0.0.1:9000/start_encode', {
+      const response = await fetch('http://localhost:9000/start_encode', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ filename }),
+        body: JSON.stringify({ filename, key }),
       });
 
       if (!response.ok) {
@@ -74,7 +85,7 @@ export const useEncoding = (filename: string, inputSize: number): UseEncodingRet
       setEncodingError(e.message || 'Encoding failed');
       setEncodingState('error');
     }
-  }, [filename]);
+  }, [filename, key]);
 
   // Polling logic inside useEffect
   useEffect(() => {
@@ -82,7 +93,11 @@ export const useEncoding = (filename: string, inputSize: number): UseEncodingRet
 
     const pollEncode = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:9000/poll_encode');
+        if (!key) {
+          throw new Error('No key available for polling');
+        }
+        
+        const response = await fetch(`http://localhost:9000/poll_encode?key=${encodeURIComponent(key)}`);
 
         if (!response.ok) {
           throw new Error('Failed to poll encoding status');
@@ -98,7 +113,7 @@ export const useEncoding = (filename: string, inputSize: number): UseEncodingRet
 
           // Fetch metadata from the backend
           try {
-            const metadataResponse = await fetch('http://127.0.0.1:9000/metadata_encode');
+            const metadataResponse = await fetch(`http://localhost:9000/metadata_encode?key=${encodeURIComponent(key)}`);
             if (metadataResponse.ok) {
               const response = await metadataResponse.json();
               const metadata = response.result; // Access the result object
@@ -177,15 +192,18 @@ export const useEncoding = (filename: string, inputSize: number): UseEncodingRet
         clearInterval(interval);
       }
     };
-  }, [encodingState]);
+  }, [encodingState, key]);
 
   // Reset encoding state
   const resetEncode = useCallback(async () => {
     try {
-      await fetch('http://127.0.0.1:9000/reset_encode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      if (key) {
+        await fetch('http://localhost:9000/reset_encode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key }),
+        });
+      }
     } catch (e) {
       // Optionally handle/log error, but always reset local state
     }
@@ -194,7 +212,7 @@ export const useEncoding = (filename: string, inputSize: number): UseEncodingRet
     setEncodingResult(null);
     setProgress(0);
     setEta(null);
-  }, []);
+  }, [key]);
 
   return useMemo(() => ({
     encodingState,
