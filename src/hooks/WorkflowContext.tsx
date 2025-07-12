@@ -36,6 +36,7 @@ function getResolutionLabel(width?: number, height?: number): string {
 export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [visitedSteps, setVisitedSteps] = useState<Set<number>>(new Set([0])); // Start with step 0 visited
   const fileUpload = useFileUpload();
   const encoding = useEncoding(fileUpload.uploadedFile?.name || '', fileUpload.uploadedFile?.size || 0, fileUpload.uploadedFile?.key);
   const decoding = useDecoding(fileUpload.uploadedFile?.key);
@@ -158,9 +159,8 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
           if (!summary.inputSize || !summary.outputSize || !summary.duration) return null;
           // Processing time (1 decimal)
           const processingTime = typeof summary.duration === 'number' ? `${summary.duration.toFixed(1)}s` : '--';
-          // Compression ratio as X.Xx (to match main card)
-          const ratio = summary.compression ?? summary.outputSize ? (summary.inputSize / summary.outputSize) : null;
-          const compressionRatioStr = ratio ? `${ratio.toFixed(1)}x` : '--';
+          // Compression ratio - use the actual value from encoding result, not calculated
+          const compressionRatioStr = summary.compressionRatio ? `${summary.compressionRatio.toFixed(1)}x` : '--';
           // PSNR (1 decimal, dB) - if available
           const psnr = encoding.encodingResult?.psnr !== undefined ? `${encoding.encodingResult.psnr.toFixed(1)} dB` : '--';
           return (
@@ -255,31 +255,48 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
   const goToStep = (stepIndex: number) => {
     if (stepIndex >= 0 && stepIndex < allSteps.length) {
       setCurrentStep(stepIndex);
+      // Mark this step as visited
+      setVisitedSteps(prev => new Set(prev).add(stepIndex));
     }
   };
 
   const goToPrevious = () => {
     if (!isFirstStep) {
-      setCurrentStep(currentStep - 1);
+      const newStep = currentStep - 1;
+      setCurrentStep(newStep);
+      setVisitedSteps(prev => new Set(prev).add(newStep));
     }
   };
 
   const goToNext = () => {
     if (!isLastStep) {
-      setCurrentStep(currentStep + 1);
+      const newStep = currentStep + 1;
+      setCurrentStep(newStep);
+      setVisitedSteps(prev => new Set(prev).add(newStep));
     }
   };
 
   const canGoToStep = (stepIndex: number) => {
-    // Can't go to a future step if the current one isn't complete
-    if (stepIndex > currentStep && !completedSteps.has(currentStep)) {
-      return false;
+    // Can always go to visited steps
+    if (visitedSteps.has(stepIndex)) {
+      return true;
     }
-    return true;
+    
+    // Can go to the next step if current step is completed
+    if (stepIndex === currentStep + 1 && completedSteps.has(currentStep)) {
+      return true;
+    }
+    
+    // Can't go to steps that haven't been visited and are more than 1 step ahead
+    return false;
   };
 
   const isStepCompleted = (stepIndex: number) => {
     return completedSteps.has(stepIndex);
+  };
+
+  const isStepVisited = (stepIndex: number) => {
+    return visitedSteps.has(stepIndex);
   };
 
   const markStepAsCompleted = (stepIndex: number) => {
@@ -307,6 +324,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
       return newCompleted;
     });
 
+    // Don't remove visited steps - they should remain accessible
     setCurrentStep(groupStart);
   };
 
@@ -340,11 +358,25 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
       if (timer) clearTimeout(timer);
     };
   }, [shouldAutoAdvance]);
+
+  // Effect 3: Auto-mark steps as completed when they have data
+  useEffect(() => {
+    stepSummaries.forEach((summary, index) => {
+      if (summary && !completedSteps.has(index)) {
+        // Mark as completed if it has finished: true OR if it has metadata (indicating completion)
+        const shouldComplete = summary.finished === true || (stepMetadata[index] !== null);
+        if (shouldComplete) {
+          setCompletedSteps(prev => new Set(prev).add(index));
+        }
+      }
+    });
+  }, [stepSummaries, stepMetadata, completedSteps]);
   
   const value: WorkflowContextType = {
     currentStep,
     setCurrentStep,
     completedSteps,
+    visitedSteps,
     workflowConfig,
     allSteps,
     stepSummaries,
@@ -361,6 +393,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
     goToNext,
     canGoToStep,
     isStepCompleted,
+    isStepVisited,
     markStepAsCompleted,
     getStepSummary,
     getCurrentStepSummary,

@@ -4,13 +4,6 @@ import type { HlsPlayerRef } from '../components/ui/HlsPlayer';
 
 export type PsnrComparisonState = 'loading' | 'ready' | 'error';
 
-export const videoUrls: Record<string, string> = {
-  ours: 'https://www.w3schools.com/html/mov_bbb.mp4',
-  h264: 'https://www.w3schools.com/html/mov_bbb.mp4',
-  h265: 'https://www.w3schools.com/html/mov_bbb.mp4',
-  av1: 'https://www.w3schools.com/html/mov_bbb.mp4'
-};
-
 export const codecColors: Record<string, { bg: string; border: string; text: string }> = {
   ours: { bg: '#14b8a6', border: '#0d9488', text: '#ffffff' },
   h264: { bg: '#2563eb', border: '#1d4ed8', text: '#ffffff' },
@@ -34,6 +27,8 @@ interface UsePsnrComparisonReturn {
   loadingStates: Record<string, boolean>;
   psnrData: Record<string, number>;
   allVideosLoaded: boolean;
+  allVideosReadyIncludingHls: boolean;
+  individualVideoReady: Record<string, boolean>;
   videoUrls: Record<string, string>;
   videoRefs: {
     ours: React.RefObject<HlsPlayerRef | null>;
@@ -41,7 +36,7 @@ interface UsePsnrComparisonReturn {
     h265: React.RefObject<HTMLVideoElement | null>;
     av1: React.RefObject<HTMLVideoElement | null>;
   };
-  compressionRatio: number; // Add compression ratio to the interface
+  compressionRatio: number;
   handlePlayPause: () => void;
   handleSkip: (direction: 'forward' | 'backward') => void;
   handleScrubberChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -53,19 +48,20 @@ interface UsePsnrComparisonReturn {
   handleHlsBuffering: (buffering: boolean) => void;
   handleVideoReady: (codec: string) => void;
   handleVideoBuffering: (codec: string, buffering: boolean) => void;
+  handleRetryVideo: (codec: string) => void;
 }
 
 export const usePsnrComparison = (key: string, originalVideoDuration?: number): UsePsnrComparisonReturn => {
-  
+  // 1. Fetch h264, h265, av1 on load
   const { videoDataMap, loading, fetchData } = useCodecDataFetch(key || '');
 
   useEffect(() => {
     if (key) {
-      fetchData('medium');
+      fetchData(false);
     }
   }, [key, fetchData]);
 
-  // Create video refs - FIXED: Create refs outside useMemo
+  // Video refs
   const oursRef = useRef<HlsPlayerRef>(null);
   const h264Ref = useRef<HTMLVideoElement>(null);
   const h265Ref = useRef<HTMLVideoElement>(null);
@@ -78,58 +74,153 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
     av1: av1Ref
   }), []);
 
-  // Track HLS video duration to calculate compression ratio
+  // State
+  const [psnrState, setPsnrState] = useState<PsnrComparisonState>('loading');
+  const [error, setError] = useState<string>('');
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(60);
   const [hlsDuration, setHlsDuration] = useState<number>(0);
 
-  // Calculate compression ratio when we have both durations
+  // Track ready states for h264, h265, av1 only (ignore HLS)
+  const [readyStates, setReadyStates] = useState<Record<string, boolean>>({
+    h264: false,
+    h265: false,
+    av1: false
+  });
+
+  // Track if HLS is ready (but don't include in loading calculation)
+  const [hlsReady, setHlsReady] = useState<boolean>(false);
+
+  const [psnrData, setPsnrData] = useState<Record<string, number>>({
+    ours: 0,
+    h264: 0,
+    h265: 0,
+    av1: 0
+  });
+
+  // Compression ratio calculation
   const compressionRatio = useMemo(() => {
     if (hlsDuration > 0 && originalVideoDuration && originalVideoDuration > 0) {
-      // The HLS video is LONGER than the original, so we need to SPEED IT UP
-      // HLS duration / Original duration = how much faster the HLS should play
-      const ratio = hlsDuration / originalVideoDuration;
-      console.log('Compression ratio calculated:', { hlsDuration, originalVideoDuration, ratio });
-      return ratio;
+      return hlsDuration / originalVideoDuration;
     }
-    
-    // Fallback to default ratio if we don't have the data yet
-    return 30/7; // Decoded is longer, so speed up ratio > 1
+    return 30/7; // Fallback
   }, [hlsDuration, originalVideoDuration]);
 
-  // Construct video URLs
+  // Video URLs
   const getVideoUrls = useMemo(() => {
     const urls: Record<string, string> = {
-      ours: '', // Will be set below
+      ours: '',
       h264: videoDataMap.h264?.video_url || '',
       h265: videoDataMap.h265?.video_url || '',
       av1: videoDataMap.av1?.video_url || ''
     };
 
-    // For "ours", construct the decoded video URL like in Step5DecodedVideo
     if (key) {
-      // Extract filename from key (assuming key contains the filename)
       const filename = key.replace(/\.mp4$/, '');
       const keyParam = `?key=${encodeURIComponent(key)}`;
       urls.ours = `http://localhost:9000/hls/${filename}/decoded/stream.m3u8${keyParam}`;
     }
 
-    console.log('Video URLs:', urls);
-    console.log('Video Data Map:', videoDataMap);
-    console.log('Key:', key);
-    console.log('Original Video Duration:', originalVideoDuration);
-    console.log('HLS Duration:', hlsDuration);
-    console.log('Compression Ratio:', compressionRatio);
-
     return urls;
-  }, [videoDataMap, key, originalVideoDuration, hlsDuration, compressionRatio]);
+  }, [videoDataMap, key]);
+
+  // Loading states based on ready states (exclude HLS)
+  const loadingStates = useMemo(() => ({
+    ours: !hlsReady,
+    h264: !readyStates.h264,
+    h265: !readyStates.h265,
+    av1: !readyStates.av1
+  }), [hlsReady, readyStates]);
+
+  // 3. All videos loaded = h264, h265, av1 ready (ignore HLS for this calculation)
+  const allVideosLoaded = useMemo(() => {
+    return readyStates.h264 && readyStates.h265 && readyStates.av1;
+  }, [readyStates]);
+
+  // All videos including HLS ready for UI display
+  const allVideosReadyIncludingHls = useMemo(() => {
+    return hlsReady && readyStates.h264 && readyStates.h265 && readyStates.av1;
+  }, [hlsReady, readyStates]);
+
+  // Individual video ready states including HLS
+  const individualVideoReady = useMemo(() => ({
+    ours: hlsReady,
+    h264: readyStates.h264,
+    h265: readyStates.h265,
+    av1: readyStates.av1
+  }), [hlsReady, readyStates]);
+
+  // 2. When videos are ready to play, console log
+  useEffect(() => {
+    if (allVideosLoaded) {
+      console.log('All videos are ready to play!', readyStates);
+      setPsnrState('ready');
+    }
+  }, [allVideosLoaded, readyStates]);
+
+  // Update PSNR data when videoDataMap changes
+  useEffect(() => {
+    setPsnrData({
+      ours: 42.3,
+      h264: videoDataMap.h264?.psnr || 0,
+      h265: videoDataMap.h265?.psnr || 0,
+      av1: videoDataMap.av1?.psnr || 0
+    });
+  }, [videoDataMap]);
+
+  // Event handlers
+  const handleVideoReady = useCallback((codec: string) => {
+    console.log(`Video ready: ${codec}`);
+    if (codec !== 'ours') {
+      setReadyStates(prev => ({ ...prev, [codec]: true }));
+    }
+  }, []);
+
+  const handleHlsReady = useCallback(() => {
+    console.log('HLS ready');
+    setHlsReady(true);
+  }, []);
+
+  const handleHlsBuffering = useCallback((_buffering: boolean) => {
+    // Handle HLS buffering if needed
+  }, []);
+
+  const handleVideoBuffering = useCallback((_codec: string, _buffering: boolean) => {
+    // Handle video buffering if needed
+  }, []);
+
+  const handleRetryVideo = useCallback((codec: string) => {
+    console.log(`Retrying video: ${codec}`);
+    if (codec === 'ours') {
+      // Reset HLS state
+      setHlsReady(false);
+      // Force HLS player to reload by triggering re-render
+      if (oursRef.current) {
+        oursRef.current.pause();
+        oursRef.current.seek(0);
+      }
+    } else {
+      // Reset individual codec state
+      setReadyStates(prev => ({ ...prev, [codec]: false }));
+      // Force video element to reload
+      const ref = codec === 'h264' ? h264Ref : codec === 'h265' ? h265Ref : av1Ref;
+      if (ref.current) {
+        ref.current.pause();
+        ref.current.currentTime = 0;
+        ref.current.load(); // Force reload
+      }
+    }
+  }, []);
 
   // EAGER LOADING: Create hidden preload elements
   useEffect(() => {
     const urls = getVideoUrls;
     const preloadElements: HTMLVideoElement[] = [];
 
-    // Create hidden video elements for preloading
+    // Create hidden video elements for preloading h264, h265, av1 (skip HLS)
     Object.entries(urls).forEach(([codec, url]) => {
-      if (url && codec !== 'ours') { // Skip HLS for now as it needs special handling
+      if (url && codec !== 'ours') {
         const video = document.createElement('video');
         video.style.position = 'absolute';
         video.style.left = '-9999px';
@@ -141,9 +232,10 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
         video.preload = 'auto';
         video.src = url;
         
-        // Add event listeners to track loading progress
-        video.addEventListener('loadeddata', () => {
-          console.log(`Preload: ${codec} video loaded successfully`);
+        // Track when video is ready to play through completely
+        video.addEventListener('canplaythrough', () => {
+          console.log(`Preload: ${codec} video fully loaded and ready`);
+          handleVideoReady(codec);
         });
         
         video.addEventListener('error', (e) => {
@@ -163,201 +255,14 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
         }
       });
     };
-  }, [getVideoUrls]);
-
-  const [psnrState, setPsnrState] = useState<PsnrComparisonState>('loading');
-  const [error, setError] = useState<string>('');
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [currentTime, setCurrentTime] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(60);
-  
-  // FIXED: Track loading/ready states for all videos including HLS
-  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({
-    ours: true,
-    h264: true,
-    h265: true,
-    av1: true
-  });
-  
-  // FIXED: Track ready states separately from loading states
-  const [readyStates, setReadyStates] = useState<Record<string, boolean>>({
-    ours: false,
-    h264: false,
-    h265: false,
-    av1: false
-  });
-
-  // FIXED: Track buffering states for synchronized playback
-  const [bufferingStates, setBufferingStates] = useState<Record<string, boolean>>({
-    ours: false,
-    h264: false,
-    h265: false,
-    av1: false
-  });
-
-  const [psnrData, setPsnrData] = useState<Record<string, number>>({
-    ours: 0,
-    h264: 0,
-    h265: 0,
-    av1: 0
-  });
-
-  // Update loading states based on videoDataMap availability
-  useEffect(() => {
-    console.log('Video data map changed:', videoDataMap);
-    setLoadingStates(prev => ({
-      ours: prev.ours, // Keep HLS loading state as is
-      h264: !videoDataMap.h264,
-      h265: !videoDataMap.h265,
-      av1: !videoDataMap.av1
-    }));
-  }, [videoDataMap]);
-
-  const allVideosLoaded = useMemo(() => {
-    const loaded = Object.values(readyStates).every(ready => ready);
-    console.log('All videos loaded calculation:', { readyStates, allVideosLoaded: loaded });
-    return loaded;
-  }, [readyStates]);
-
-  useEffect(() => {
-    const standardCodecs = ['h264', 'h265', 'av1'];
-    const anyStandardBuffering = standardCodecs.some(codec => bufferingStates[codec]);
-    
-    // Declarative playback: determine if videos should be playing based on state
-    const canPlay = isPlaying && allVideosLoaded && !anyStandardBuffering;
-
-    const refs = {
-      ours: oursRef,
-      h264: h264Ref,
-      h265: h265Ref,
-      av1: av1Ref,
-    };
-
-    Object.values(refs).forEach(ref => {
-      const player = ref.current;
-      if (!player) return;
-      
-      if (canPlay) {
-        // player.play() is idempotent, safe to call multiple times
-        player.play().catch(e => console.error("Play interrupted", e));
-      } else {
-        player.pause();
-      }
-    });
-
-  }, [isPlaying, allVideosLoaded, bufferingStates]);
-
-
-  // Update PSNR data when videoDataMap changes
-  useEffect(() => {
-    const newPsnrData = {
-      ours: 42.3, // Keep simulated data for ours
-      h264: videoDataMap.h264?.psnr || 0,
-      h265: videoDataMap.h265?.psnr || 0,
-      av1: videoDataMap.av1?.psnr || 0
-    };
-    setPsnrData(newPsnrData);
-  }, [videoDataMap]);
-
-  useEffect(() => {
-    if (allVideosLoaded) {
-        setPsnrState('ready');
-    }
-  }, [allVideosLoaded]);
-
-  const handleHlsReady = useCallback(() => {
-    console.log('HLS player ready event fired');
-    setReadyStates(prev => ({ ...prev, ours: true }));
-    setLoadingStates(prev => ({ ...prev, ours: false }));
-  }, []);
-
-  const handleHlsBuffering = useCallback((buffering: boolean) => {
-    console.log('HLS player buffering event fired:', buffering);
-    setBufferingStates(prev => ({ ...prev, ours: buffering }));
-  }, []);
-
-  const handleVideoReady = useCallback((codec: string) => {
-    console.log('Video ready event fired for:', codec);
-    setReadyStates(prev => ({ ...prev, [codec]: true }));
-    setLoadingStates(prev => ({ ...prev, [codec]: false }));
-  }, []);
-
-  const handleVideoBuffering = useCallback((codec: string, buffering: boolean) => {
-    console.log('Video buffering event fired for:', codec, buffering);
-    setBufferingStates(prev => ({ ...prev, [codec]: buffering }));
-  }, []);
-
-  // FIXED: Update loading states when ready states change
-  useEffect(() => {
-    console.log('Ready states changed:', readyStates);
-    setLoadingStates(prev => ({
-      ours: !readyStates.ours,
-      h264: !readyStates.h264,
-      h265: !readyStates.h265,
-      av1: !readyStates.av1
-    }));
-  }, [readyStates]);
-
-  // FIXED: Fallback timeout for HLS player ready state
-  useEffect(() => {
-    if (!readyStates.ours && videoUrls.ours) {
-      console.log('Setting up HLS fallback timeout');
-      const timer = setTimeout(() => {
-        console.log('HLS player ready fallback triggered');
-        handleHlsReady();
-      }, 3000); // 3 second fallback
-      
-      return () => {
-        console.log('Clearing HLS fallback timeout');
-        clearTimeout(timer);
-      };
-    }
-  }, [readyStates.ours, videoUrls.ours, handleHlsReady]);
-
-  // FIXED: Fallback timeouts for regular video elements
-  useEffect(() => {
-    const timers: number[] = [];
-    
-    if (!readyStates.h264 && videoUrls.h264) {
-      console.log('Setting up H264 fallback timeout');
-      timers.push(setTimeout(() => {
-        console.log('H264 ready fallback triggered');
-        handleVideoReady('h264');
-      }, 2000));
-    }
-    
-    if (!readyStates.h265 && videoUrls.h265) {
-      console.log('Setting up H265 fallback timeout');
-      timers.push(setTimeout(() => {
-        console.log('H265 ready fallback triggered');
-        handleVideoReady('h265');
-      }, 2000));
-    }
-    
-    if (!readyStates.av1 && videoUrls.av1) {
-      console.log('Setting up AV1 fallback timeout');
-      timers.push(setTimeout(() => {
-        console.log('AV1 ready fallback triggered');
-        handleVideoReady('av1');
-      }, 2000));
-    }
-    
-    return () => {
-      console.log('Clearing video fallback timeouts');
-      timers.forEach(timer => clearTimeout(timer));
-    };
-  }, [readyStates.h264, readyStates.h265, readyStates.av1, videoUrls.h264, videoUrls.h265, videoUrls.av1, handleVideoReady]);
+  }, [getVideoUrls, handleVideoReady]);
 
   const handlePlayPause = useCallback(() => {
-    // FIXED: Don't allow playing if videos are not ready or any is buffering
-    if (!allVideosLoaded) {
-      return;
-    }
+    if (!allVideosLoaded) return;
 
     const newPlayingState = !isPlaying;
     setIsPlaying(newPlayingState);
     
-    // Control all videos
     if (oursRef.current) {
       if (newPlayingState) {
         oursRef.current.play();
@@ -375,7 +280,7 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
         }
       }
     });
-  }, [isPlaying, allVideosLoaded, oursRef, h264Ref, h265Ref, av1Ref]);
+  }, [isPlaying, allVideosLoaded]);
 
   const handleSkip = useCallback((direction: 'forward' | 'backward') => {
     if (!allVideosLoaded) return;
@@ -384,9 +289,8 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
     const newTime = Math.max(0, Math.min(duration, currentTime + skipTime));
     setCurrentTime(newTime);
     
-    // Seek all videos with ratio adjustment for "ours"
     if (oursRef.current) {
-      const oursSeekTime = newTime * compressionRatio; // Apply ratio for longer video
+      const oursSeekTime = newTime * compressionRatio;
       oursRef.current.seek(oursSeekTime);
     }
     
@@ -395,7 +299,7 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
         ref.current.currentTime = newTime;
       }
     });
-  }, [currentTime, duration, allVideosLoaded, oursRef, h264Ref, h265Ref, av1Ref, compressionRatio]);
+  }, [currentTime, duration, allVideosLoaded, compressionRatio]);
 
   const handleScrubberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (!allVideosLoaded) return;
@@ -403,9 +307,8 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
     const newTime = parseFloat(e.target.value);
     setCurrentTime(newTime);
     
-    // Seek all videos with ratio adjustment for "ours"
     if (oursRef.current) {
-      const oursSeekTime = newTime * compressionRatio; // Apply ratio for longer video
+      const oursSeekTime = newTime * compressionRatio;
       oursRef.current.seek(oursSeekTime);
     }
     
@@ -414,48 +317,34 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
         ref.current.currentTime = newTime;
       }
     });
-  }, [allVideosLoaded, oursRef, h264Ref, h265Ref, av1Ref, compressionRatio]);
+  }, [allVideosLoaded, compressionRatio]);
 
   const handleVideoTimeUpdate = useCallback(() => {
-    // Use the HLS player's time as the source of truth, but convert back to original timeline
     if (oursRef.current) {
       const hlsTime = oursRef.current.currentTime;
-      const originalTime = hlsTime / compressionRatio; // Convert back from sped-up timeline
+      const originalTime = hlsTime / compressionRatio;
       setCurrentTime(originalTime);
     }
-  }, [oursRef, compressionRatio]);
+  }, [compressionRatio]);
 
   const handleVideoLoadedMetadata = useCallback(() => {
-    // Use the HLS player's duration as the source of truth, but convert back to original timeline
     if (oursRef.current) {
       const hlsDuration = oursRef.current.duration;
-      setHlsDuration(hlsDuration); // Update hlsDuration state for ratio calculation
-      const originalDuration = hlsDuration / compressionRatio; // Convert back from sped-up timeline
+      setHlsDuration(hlsDuration);
+      const originalDuration = hlsDuration / compressionRatio;
       setDuration(originalDuration);
     }
-  }, [oursRef, compressionRatio]);
+  }, [compressionRatio]);
 
   const handleReset = useCallback(() => {
     setIsPlaying(false);
     setCurrentTime(0);
-    setLoadingStates({
-      ours: true,
-      h264: true,
-      h265: true,
-      av1: true
-    });
     setReadyStates({
-      ours: false,
       h264: false,
       h265: false,
       av1: false
     });
-    setBufferingStates({
-      ours: false,
-      h264: false,
-      h265: false,
-      av1: false
-    });
+    setHlsReady(false);
     setPsnrData({
       ours: 0,
       h264: 0,
@@ -465,7 +354,6 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
     setError('');
     setPsnrState('loading');
     
-    // Reset all videos
     if (oursRef.current) {
       oursRef.current.pause();
       oursRef.current.seek(0);
@@ -477,7 +365,7 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
         ref.current.currentTime = 0;
       }
     });
-  }, [oursRef, h264Ref, h265Ref, av1Ref]);
+  }, []);
 
   return useMemo(() => ({
     psnrState,
@@ -488,9 +376,11 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
     loadingStates,
     psnrData,
     allVideosLoaded,
+    allVideosReadyIncludingHls,
+    individualVideoReady,
     videoUrls: getVideoUrls,
     videoRefs,
-    compressionRatio, // Add compression ratio to the return
+    compressionRatio,
     handlePlayPause,
     handleSkip,
     handleScrubberChange,
@@ -498,11 +388,11 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
     handleVideoLoadedMetadata,
     handleReset,
     setError,
-    // FIXED: Expose new handlers for synchronization
     handleHlsReady,
     handleHlsBuffering,
     handleVideoReady,
     handleVideoBuffering,
+    handleRetryVideo,
   }), [
     psnrState,
     error,
@@ -512,9 +402,11 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
     loadingStates,
     psnrData,
     allVideosLoaded,
+    allVideosReadyIncludingHls,
+    individualVideoReady,
     getVideoUrls,
     videoRefs,
-    compressionRatio, // Add compression ratio to dependencies
+    compressionRatio,
     handlePlayPause,
     handleSkip,
     handleScrubberChange,
@@ -525,5 +417,6 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
     handleHlsBuffering,
     handleVideoReady,
     handleVideoBuffering,
+    handleRetryVideo,
   ]);
 };

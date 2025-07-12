@@ -38,6 +38,7 @@ export interface WorkflowContextType {
   currentStep: number;
   setCurrentStep: (step: number) => void;
   completedSteps: Set<number>;
+  visitedSteps: Set<number>;
   workflowConfig: StepGroup[];
   allSteps: StepConfig[];
   stepSummaries: (StepSummary | null)[];
@@ -54,6 +55,7 @@ export interface WorkflowContextType {
   goToNext: () => void;
   canGoToStep: (stepIndex: number) => boolean;
   isStepCompleted: (stepIndex: number) => boolean;
+  isStepVisited: (stepIndex: number) => boolean;
   markStepAsCompleted: (stepIndex: number) => void;
   getStepSummary: (stepIndex: number) => StepSummary | null;
   getCurrentStepSummary: () => StepSummary | null;

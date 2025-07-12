@@ -21,6 +21,9 @@ const VideoDisplay = React.memo(({
   onVideoReady,
   onVideoBuffering,
   compressionRatio,
+  showLoadingOverlay,
+  isVideoReady,
+  onRetryVideo,
 }: any) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   
@@ -114,11 +117,39 @@ const VideoDisplay = React.memo(({
         />
       )}
       
+      {/* Loading overlay */}
+      {showLoadingOverlay && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-20">
+          {isVideoReady ? (
+            // All videos not ready, but this one is
+            <div className="flex items-center space-x-2">
+              <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              <span className="text-white text-sm font-medium">Waiting for other videos...</span>
+            </div>
+          ) : (
+            // This specific video is not ready
+            <div className="flex flex-col items-center space-y-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-5 h-5 animate-spin rounded-full border-2 border-red-400 border-t-transparent"></div>
+                <span className="text-white text-sm font-medium">{codecNames[codec]} not ready</span>
+              </div>
+              <button
+                onClick={() => onRetryVideo(codec)}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded-md transition-colors"
+              >
+                Retry Reload
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      
       {/* Fullscreen button */}
       <button
         onClick={handleFullscreen}
         className="absolute bottom-2 right-2 p-2 rounded-lg bg-black bg-opacity-70 hover:bg-opacity-90 transition-all duration-200 text-white z-10"
         title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        disabled={showLoadingOverlay}
       >
         <Maximize className="w-4 h-4" />
       </button>
@@ -165,6 +196,8 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
     duration,
     psnrData,
     allVideosLoaded,
+    allVideosReadyIncludingHls,
+    individualVideoReady,
     videoUrls,
     videoRefs,
     compressionRatio, // Get compression ratio from the hook
@@ -179,6 +212,7 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
     handleHlsBuffering,
     handleVideoReady,
     handleVideoBuffering,
+    handleRetryVideo,
   } = psnrComparison;
 
 
@@ -198,6 +232,7 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
     setError(`Failed to load ${codecNames[codec]} video.`);
   }, [setError]);
 
+  // Show initial loading state when h264, h265, av1 are not loaded yet
   if (!allVideosLoaded) {
     return (
       <StageCard
@@ -212,11 +247,19 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
             {Object.keys(codecNames).map((codec) => (
               <div key={codec} className="relative">
                 <div className="aspect-video rounded-lg overflow-hidden border relative flex items-center justify-center" style={{ background: '#fdfcfb', borderColor: '#e5e7eb' }}>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-5 h-5 animate-spin rounded-full border-2 border-amber-500 border-t-transparent"></div>
-                    <span className="text-sm font-medium" style={{ color: '#6b7280' }}>
-                      Loading {codecNames[codec]}...
-                    </span>
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-5 h-5 animate-spin rounded-full border-2 border-amber-500 border-t-transparent"></div>
+                      <span className="text-sm font-medium" style={{ color: '#6b7280' }}>
+                        Loading {codecNames[codec]}...
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleRetryVideo(codec)}
+                      className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded-md transition-colors"
+                    >
+                      Retry Load
+                    </button>
                   </div>
                 </div>
                 <div className="absolute top-2 left-2">
@@ -276,6 +319,9 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
                 onVideoReady={handleVideoReady}
                 onVideoBuffering={handleVideoBuffering}
                 compressionRatio={compressionRatio}
+                showLoadingOverlay={!allVideosReadyIncludingHls}
+                isVideoReady={individualVideoReady[codec]}
+                onRetryVideo={handleRetryVideo}
               />
               <VideoOverlay
                 codec={codec}
@@ -290,7 +336,7 @@ const Step7ComparePSNR: React.FC<{ onResetGroup: () => void; isFirstStepInGroup:
           isPlaying={isPlaying}
           currentTime={currentTime}
           duration={duration}
-          allVideosLoaded={allVideosLoaded}
+          allVideosLoaded={allVideosReadyIncludingHls}
           handlePlayPause={handlePlayPause}
           handleSkip={handleSkip}
           handleScrubberChange={handleScrubberChange}

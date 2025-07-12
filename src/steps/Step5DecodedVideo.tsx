@@ -73,10 +73,12 @@ const Step5DecodedVideo: React.FC<{ onResetGroup: () => void; isFirstStepInGroup
           decodingState={decoding.decodingState}
         />
         
-        <ScreenshotButton
-          onClick={handleScreenshot}
-          disabled={!!error || !decodedVideoUrl}
-        />
+        <div className="flex justify-center">
+          <ScreenshotButton
+            onClick={handleScreenshot}
+            disabled={!!error || !decodedVideoUrl}
+          />
+        </div>
       </div>
     </StageCard>
   );

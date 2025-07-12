@@ -7,6 +7,7 @@ interface SidebarProps {
   onStepClick: (stepIndex: number) => void;
   canGoToStep: (stepIndex: number) => boolean;
   isStepCompleted: (stepIndex: number) => boolean;
+  isStepVisited: (stepIndex: number) => boolean;
   workflowConfig: StepGroup[];
   stepSummaries: (StepSummary | null)[];
   stepMetadata: (React.ReactNode | null)[];
@@ -18,6 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onStepClick,
   canGoToStep,
   isStepCompleted,
+  isStepVisited,
   workflowConfig,
   stepSummaries,
   stepMetadata,
@@ -54,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       stepLabel={step.label}
                       icon={step.icon}
                       isStepCompleted={isStepCompleted}
+                      isStepVisited={isStepVisited}
                       metadata={stepMetadata[stepIdx]}
                     />
                   </div>

@@ -11,6 +11,7 @@ export function AppContent() {
     goToNext,
     canGoToStep,
     isStepCompleted,
+    isStepVisited,
     isFirstStep,
     isLastStep,
     allSteps,
@@ -38,6 +39,7 @@ export function AppContent() {
         onStepClick={handleStepClick}
         canGoToStep={canGoToStep}
         isStepCompleted={isStepCompleted}
+        isStepVisited={isStepVisited}
         workflowConfig={workflowConfig}
         stepSummaries={stepSummaries}
         stepMetadata={stepMetadata}
