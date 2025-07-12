@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 
 export interface UploadedFile {
   name: string;
@@ -17,8 +17,19 @@ export interface VideoFile extends UploadedFile {
 
 export type UploadState = 'initial' | 'uploading' | 'uploaded' | 'error';
 
+// Helper function to create VideoFile objects
+const createVideoFile = (data: any, file?: File): VideoFile => {
+  return {
+    name: data.filename,
+    size: data.file_size || file?.size || 0,
+    type: data.content_type,
+    url: file ? URL.createObjectURL(file) : undefined,
+    saved_path: data.saved_path,
+    key: data.key,
+  };
+};
+
 interface FileUploadHookReturn {
-  loading: boolean;
   uploadState: UploadState;
   uploadedFile: VideoFile | null;
   uploadProgress: number;
@@ -27,25 +38,18 @@ interface FileUploadHookReturn {
   reset: () => Promise<void>;
   updateVideoMetadata: (duration?: number, width?: number, height?: number) => void;
   finished: boolean;
+  loading: boolean;
 }
 
-const initialState = {
-  uploadState: 'initial' as UploadState,
-  uploadedFile: null as VideoFile | null,
-  uploadProgress: 0,
-  error: '',
-};
 
 export const useFileUpload = (): FileUploadHookReturn => {
-  const [loading, setLoading] = useState(false);
-  const [uploadState, setUploadState] = useState<UploadState>(initialState.uploadState);
-  const [uploadedFile, setUploadedFile] = useState<VideoFile | null>(initialState.uploadedFile);
-  const [uploadProgress, setUploadProgress] = useState<number>(initialState.uploadProgress);
-  const [error, setError] = useState<string>(initialState.error);
+  const [uploadState, setUploadState] = useState<UploadState>('initial');
+  const [uploadedFile, setUploadedFile] = useState<VideoFile | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [error, setError] = useState<string>('');
 
 
   const uploadFile = useCallback(async (file: File) => {
-    setLoading(true);
     setError('');
     setUploadState('uploading');
     setUploadProgress(0);
@@ -65,16 +69,7 @@ export const useFileUpload = (): FileUploadHookReturn => {
           // File already exists on disk, use existing session
           console.log(`File '${file.name}' already exists, using existing session with key '${keyData.key}'`);
           
-          const url = URL.createObjectURL(file); // Still use this for local preview
-          
-          const uploaded: VideoFile = {
-            name: keyData.filename,
-            size: keyData.file_size || file.size, // Use backend size if available, fallback to file size
-            type: keyData.content_type,
-            url,
-            saved_path: keyData.saved_path,
-            key: keyData.key,
-          };
+          const uploaded = createVideoFile(keyData, file);
 
           setUploadedFile(uploaded);
           setUploadState('uploaded');
@@ -102,31 +97,20 @@ export const useFileUpload = (): FileUploadHookReturn => {
       }
 
       const result = await response.json();
-      const url = URL.createObjectURL(file); // Still use this for local preview
-
-      const uploaded: VideoFile = {
-        name: result.filename,
-        size: file.size, // Backend doesn't return size, so use original file size
-        type: result.content_type,
-        url,
-        saved_path: result.saved_path, // Store the saved path from backend
-        key: result.key, // Store the key from backend response
-      };
+      const uploaded = createVideoFile(result, file);
 
       setUploadedFile(uploaded);
       setUploadState('uploaded');
-      setUploadProgress(100); // Assuming full progress on successful upload
+      setUploadProgress(100);
       setError('');
     } catch (e: any) {
       setError(e.message || 'Upload failed');
       setUploadState('error');
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   const reset = useCallback(async () => {
-    setLoading(true);
+    setUploadState('uploading');
     try {
       const key = uploadedFile?.key;
       if (!key) {
@@ -144,15 +128,14 @@ export const useFileUpload = (): FileUploadHookReturn => {
         throw new Error(errorData.message || 'Failed to reset');
       }
 
-      // Assuming success, reset frontend state
-      setUploadState(initialState.uploadState);
-      setUploadedFile(initialState.uploadedFile);
-      setUploadProgress(initialState.uploadProgress);
-      setError(initialState.error);
+      // Reset frontend state
+      setUploadState('initial');
+      setUploadedFile(null);
+      setUploadProgress(0);
+      setError('');
     } catch (e: any) {
       setError(e.message || 'Failed to reset');
-    } finally {
-      setLoading(false);
+      setUploadState('error');
     }
   }, [uploadedFile?.key]);
 
@@ -172,8 +155,9 @@ export const useFileUpload = (): FileUploadHookReturn => {
     typeof uploadedFile.height === 'number' &&
     typeof uploadedFile.duration === 'number';
 
-  const result = useMemo(() => ({
-    loading,
+  const loading = uploadState === 'uploading';
+
+  return {
     uploadState,
     uploadedFile,
     uploadProgress,
@@ -182,7 +166,6 @@ export const useFileUpload = (): FileUploadHookReturn => {
     reset,
     updateVideoMetadata,
     finished,
-  }), [loading, uploadState, uploadedFile, uploadProgress, error, uploadFile, reset, updateVideoMetadata, finished]);
-
-  return result;
+    loading,
+  };
 }; 

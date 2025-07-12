@@ -1,6 +1,59 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export type ScreenshotSearchState = 'initial' | 'searching' | 'error' | 'done';
+
+// Default progress state
+const DEFAULT_PROGRESS: ScreenshotSearchProgress = {
+  progress: 0,
+  eta: '25s',
+  currentFrame: 0,
+  totalFrames: 2400,
+  matchesFound: 0,
+  processingMethod: 'Initializing...',
+};
+
+// Helper function to format timestamp
+const formatTimestamp = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+// Helper function to create default search result
+const createEmptySearchResult = (): ScreenshotSearchResult => ({
+  matches: [],
+  totalMatches: 0,
+  searchDuration: 0,
+  searchMethod: 'deep_learning',
+  processingTime: 0,
+  data: [],
+  metadata: null,
+});
+
+// Helper function to transform search data to matches
+const transformSearchData = (searchData: any[]): ScreenshotMatch[] => {
+  const matches: ScreenshotMatch[] = [];
+  if (Array.isArray(searchData)) {
+    searchData.forEach((item, index) => {
+      if (item.top_results && Array.isArray(item.top_results)) {
+        item.top_results.forEach((result: any) => {
+          matches.push({
+            id: `${index}-${result.timestamp || Date.now()}`,
+            url: result.url || '',
+            filename: result.filename || `match-${index}`,
+            timestamp: formatTimestamp(result.timestamp || 0),
+            confidence: result.confidence || 0,
+            similarity: result.similarity || 0,
+            frameNumber: result.frame_number || 0,
+            videoTime: result.timestamp || 0,
+          });
+        });
+      }
+    });
+  }
+  return matches;
+};
 
 export interface ScreenshotMatch {
   id: string;
@@ -47,6 +100,12 @@ interface UseScreenshotSearchReturn {
   addUploadedImage: (filename: string, fileUrl: string) => void;
   selectedFiles: File[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  isResetting: boolean;
+  isLoading: boolean;
+  hasError: boolean;
+  isComplete: boolean;
+  hasResult: boolean;
+  hasMatches: boolean;
 }
 
 export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => {
@@ -54,46 +113,41 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
   const [searchError, setSearchError] = useState('');
   const [searchResult, setSearchResult] = useState<ScreenshotSearchResult | null>(null);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<{ [filename: string]: string }>({});
-  const [searchProgress, setSearchProgress] = useState<ScreenshotSearchProgress>({
-    progress: 0,
-    eta: '25s',
-    currentFrame: 0,
-    totalFrames: 2400,
-    matchesFound: 0,
-    processingMethod: 'Initializing...',
-  });
+  const [searchProgress, setSearchProgress] = useState<ScreenshotSearchProgress>(DEFAULT_PROGRESS);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Helper function to reset all state
+  const resetState = useCallback(() => {
+    setSearchError('');
+    setSearchState('initial');
+    setSearchResult(null);
+    setUploadedImageUrls({});
+    setSearchProgress(DEFAULT_PROGRESS);
+    setSelectedFiles([]);
+  }, []);
+
+  // Computed boolean states
+  const isLoading = searchState === 'searching';
+  const hasError = searchState === 'error';
+  const isComplete = searchState === 'done';
+  const hasResult = !!searchResult;
+  const hasMatches = !!(searchResult?.matches?.length);
 
   // Reset state when key changes
   useEffect(() => {
     if (key) {
-      setSearchError('');
-      setSearchState('initial');
-      setSearchResult(null);
-      setUploadedImageUrls({});
-      setSearchProgress({
-        progress: 0,
-        eta: '25s',
-        currentFrame: 0,
-        totalFrames: 2400,
-        matchesFound: 0,
-        processingMethod: 'Initializing...',
-      });
-      setSelectedFiles([]); // Reset selected files when key changes
+      resetState();
     }
-  }, [key]);
+  }, [key, resetState]);
 
   // Start vector search process
   const startSearch = useCallback(async (videoPath: string, imagesPaths: string[]) => {
-    setSearchError('');
+    resetState();
     setSearchState('searching');
-    setSearchResult(null);
     setSearchProgress({
-      progress: 0,
+      ...DEFAULT_PROGRESS,
       eta: 'N/A',
-      currentFrame: 0,
-      totalFrames: 2400,
-      matchesFound: 0,
       processingMethod: 'Starting vector search...',
     });
 
@@ -127,7 +181,7 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
       setSearchError(e.message || 'Vector search failed to start');
       setSearchState('error');
     }
-  }, [key]);
+  }, [key, resetState]);
 
   // Polling logic inside useEffect
   useEffect(() => {
@@ -169,25 +223,7 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
                 console.log('Vector search metadata:', metadata);
                 
                 // Transform backend data to match our interface
-                const matches: ScreenshotMatch[] = [];
-                if (Array.isArray(searchData)) {
-                  searchData.forEach((item, index) => {
-                    if (item.top_results && Array.isArray(item.top_results)) {
-                      item.top_results.forEach((result: any) => {
-                        matches.push({
-                          id: `${index}-${result.timestamp || Date.now()}`,
-                          url: result.url || '',
-                          filename: result.filename || `match-${index}`,
-                          timestamp: formatTimestamp(result.timestamp || 0),
-                          confidence: result.confidence || 0,
-                          similarity: result.similarity || 0,
-                          frameNumber: result.frame_number || 0,
-                          videoTime: result.timestamp || 0,
-                        });
-                      });
-                    }
-                  });
-                }
+                const matches = transformSearchData(searchData);
 
                 setSearchResult({
                   matches,
@@ -200,15 +236,7 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
                 });
               } else {
                 console.log('No vector search results available yet');
-                setSearchResult({
-                  matches: [],
-                  totalMatches: 0,
-                  searchDuration: 0,
-                  searchMethod: 'deep_learning',
-                  processingTime: 0,
-                  data: [],
-                  metadata: null,
-                });
+                setSearchResult(createEmptySearchResult());
               }
             } else {
               throw new Error('Failed to fetch vector search results');
@@ -244,6 +272,7 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
 
   // Reset search state
   const resetSearch = useCallback(async () => {
+    setIsResetting(true);
     try {
       // You might want to add a reset endpoint to your backend
       // await fetch('http://localhost:9000/reset_vector_search', {
@@ -253,20 +282,9 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
     } catch (e) {
       // Optionally handle/log error, but always reset local state
     }
-    setSearchError('');
-    setSearchState('initial');
-    setSearchResult(null);
-    setUploadedImageUrls({});
-    setSearchProgress({
-      progress: 0,
-      eta: '25s',
-      currentFrame: 0,
-      totalFrames: 2400,
-      matchesFound: 0,
-      processingMethod: 'Initializing...',
-    });
-    setSelectedFiles([]); // Reset selected files on reset
-  }, []);
+    resetState();
+    setIsResetting(false);
+  }, [resetState]);
 
   const takeScreenshot = useCallback(async (): Promise<string> => {
     // Simulate taking a screenshot
@@ -293,39 +311,24 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
     }));
   }, []);
 
-  // Helper function to format timestamp
-  const formatTimestamp = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return {
+    searchState,
+    searchError,
+    searchResult,
+    searchProgress,
+    uploadedImageUrls,
+    startSearch,
+    resetSearch,
+    takeScreenshot,
+    jumpToTimestamp,
+    addUploadedImage,
+    selectedFiles,
+    setSelectedFiles,
+    isResetting,
+    isLoading,
+    hasError,
+    isComplete,
+    hasResult,
+    hasMatches,
   };
-
-  return useMemo(() => ({
-    searchState,
-    searchError,
-    searchResult,
-    searchProgress,
-    uploadedImageUrls,
-    startSearch,
-    resetSearch,
-    takeScreenshot,
-    jumpToTimestamp,
-    addUploadedImage,
-    selectedFiles,
-    setSelectedFiles,
-  }), [
-    searchState,
-    searchError,
-    searchResult,
-    searchProgress,
-    uploadedImageUrls,
-    startSearch,
-    resetSearch,
-    takeScreenshot,
-    jumpToTimestamp,
-    addUploadedImage,
-    selectedFiles,
-    setSelectedFiles,
-  ]);
 }; 

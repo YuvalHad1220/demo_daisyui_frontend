@@ -3,12 +3,10 @@ import React from 'react';
 interface DecodingInProgressProps {
   progress: number;
   eta: string;
-  currentFrame: number;
-  totalFrames: number;
 }
 
 const DecodingInProgress: React.FC<DecodingInProgressProps> = ({
-  progress, eta, currentFrame, totalFrames
+  progress, eta
 }) => (
   <div className="flex flex-col items-center space-y-6 animate-fade-in w-full">
     <div className="flex flex-col items-center mb-2">

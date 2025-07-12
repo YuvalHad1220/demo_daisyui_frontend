@@ -9,14 +9,11 @@ import EncodingAdvancedDetails from './step3EncodingFinished/EncodingAdvancedDet
 
 const Step3EncodingFinished: React.FC<{ onResetGroup: () => void; isFirstStepInGroup: boolean }> = ({ onResetGroup, isFirstStepInGroup }) => {
   const { encoding } = useWorkflow();
-  const { encodingResult, resetEncode } = encoding;
-  const [resetting, setResetting] = React.useState(false);
+  const { encodingResult, resetEncode, isResetting, hasResult } = encoding;
 
   const handleReset = async () => {
-    setResetting(true);
     await resetEncode();
     onResetGroup();
-    setResetting(false);
   };
 
   return (
@@ -26,11 +23,11 @@ const Step3EncodingFinished: React.FC<{ onResetGroup: () => void; isFirstStepInG
       showReset={isFirstStepInGroup}
       resetTitle="Reset Encoding"
       onResetClick={handleReset}
-      resetting={resetting}
+      resetting={isResetting}
     >
-      {!encodingResult ? (
+      {!hasResult ? (
         <EncodingFinishedLoading />
-      ) : (
+      ) : encodingResult && (
         <>
           <EncodingStats
             datasetCreationTime={encodingResult.datasetCreationTimeS || 0}

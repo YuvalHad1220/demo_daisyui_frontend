@@ -1,6 +1,42 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export type DecodingState = 'initial' | 'decoding' | 'error' | 'done';
+
+// Helper function to format ETA time
+const formatEta = (eta: number | string): string => {
+  if (typeof eta === 'number') {
+    return eta >= 60
+      ? `${Math.floor(eta / 60)}:${String(Math.round(eta % 60)).padStart(2, '0')}`
+      : `${Math.round(eta)}s`;
+  }
+  return '';
+};
+
+// Helper function to create DecodingResult from metadata
+const createDecodingResult = (meta: any): DecodingResult => {
+  return {
+    duration: meta.decoding_time_s || 0,
+    frameCount: meta.video_frames || 0,
+    psnr: meta.avg_psnr || 0,
+    expectedPsnr: meta.expected_psnr || 0,
+    ssim: meta.ssim || 0,
+    quality: meta.quality || meta.quality_rating || 'medium',
+    decodedVideoUrl: meta.video_path || '',
+    endTime: meta.end_time,
+    decodingTimeS: meta.decoding_time_s,
+    videoPath: meta.video_path,
+    videoSizeMB: meta.video_size_mb,
+    processedSequences: meta.processed_sequences,
+    psnrStd: meta.psnr_std,
+    h264CompressionRatio: meta.h264_compression_ratio,
+    bitrateMbps: (meta.bitrate_mbps && (meta.bitrate_mbps.parsedValue || parseFloat(meta.bitrate_mbps.source))) || 0,
+    qualityRating: meta.quality_rating,
+    businessImpact: meta.business_impact,
+    memoryPeakMB: (meta.memory_peak_mb && (meta.memory_peak_mb.parsedValue || parseFloat(meta.memory_peak_mb.source))) || 0,
+    memoryIncreaseMB: meta.memory_increase_mb,
+    lightningEnabled: meta.lightning_enabled,
+  };
+};
 
 export interface DecodingResult {
   duration: number; // seconds
@@ -39,6 +75,11 @@ interface UseDecodingReturn {
   startDecode: () => Promise<void>;
   resetDecode: () => Promise<void>;
   takeScreenshot: (videoElement?: HTMLVideoElement | null, currentTime?: number) => string;
+  isResetting: boolean;
+  isLoading: boolean;
+  hasError: boolean;
+  isComplete: boolean;
+  hasResult: boolean;
 }
 
 export const useDecoding = (key?: string): UseDecodingReturn => {
@@ -49,29 +90,33 @@ export const useDecoding = (key?: string): UseDecodingReturn => {
     progress: 0,
     eta: '',
   });
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Helper function to reset all state
+  const resetState = useCallback(() => {
+    setDecodingError('');
+    setDecodingState('initial');
+    setDecodingResult(null);
+    setDecodingProgress({ progress: 0, eta: '' });
+  }, []);
+
+  // Computed boolean states
+  const isLoading = decodingState === 'decoding';
+  const hasError = decodingState === 'error';
+  const isComplete = decodingState === 'done';
+  const hasResult = !!decodingResult;
 
   // Reset state when key changes
   useEffect(() => {
     if (key) {
-      setDecodingError('');
-      setDecodingState('initial');
-      setDecodingResult(null);
-      setDecodingProgress({
-        progress: 0,
-        eta: '',
-      });
+      resetState();
     }
-  }, [key]);
+  }, [key, resetState]);
 
   // Start decoding process
   const startDecode = useCallback(async () => {
-    setDecodingError('');
+    resetState();
     setDecodingState('decoding');
-    setDecodingResult(null);
-    setDecodingProgress({
-      progress: 0,
-      eta: '',
-    });
     try {
       if (!key) {
         setDecodingError('No key available for decoding');
@@ -108,7 +153,7 @@ export const useDecoding = (key?: string): UseDecodingReturn => {
       setDecodingError('Start decode request failed');
       setDecodingState('error');
     }
-  }, [key]);
+  }, [key, resetState]);
 
   // Polling logic inside useEffect
   useEffect(() => {
@@ -193,6 +238,7 @@ export const useDecoding = (key?: string): UseDecodingReturn => {
 
 
   const resetDecode = useCallback(async () => {
+    setIsResetting(true);
     try {
       if (key) {
         await fetch('http://localhost:9000/reset_decode', {
@@ -204,14 +250,9 @@ export const useDecoding = (key?: string): UseDecodingReturn => {
     } catch (e) {
       // Optionally handle/log error, but always reset local state
     }
-    setDecodingError('');
-    setDecodingState('initial');
-    setDecodingResult(null);
-    setDecodingProgress({
-      progress: 0,
-      eta: '',
-    });
-  }, [key]);
+    resetState();
+    setIsResetting(false);
+  }, [key, resetState]);
 
   const takeScreenshot = useCallback((videoElement?: HTMLVideoElement | null, currentTime?: number): string => {
     if (!videoElement) {
@@ -267,7 +308,7 @@ export const useDecoding = (key?: string): UseDecodingReturn => {
     }
   }, [key]);
 
-  return useMemo(() => ({
+  return {
     decodingState,
     decodingError,
     decodingResult,
@@ -275,5 +316,10 @@ export const useDecoding = (key?: string): UseDecodingReturn => {
     startDecode,
     resetDecode,
     takeScreenshot,
-  }), [decodingState, decodingError, decodingResult, decodingProgress, startDecode, resetDecode, takeScreenshot]);
+    isResetting,
+    isLoading,
+    hasError,
+    isComplete,
+    hasResult,
+  };
 }; 

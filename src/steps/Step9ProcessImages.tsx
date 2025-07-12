@@ -17,15 +17,19 @@ const Step9ProcessImages: React.FC = () => {
     searchResult,
     searchProgress,
     resetSearch,
-    uploadedImageUrls
+    uploadedImageUrls,
+    isLoading,
+    hasError,
+    isComplete,
+    hasResult
   } = screenshotSearch;
 
   // Show duration when search is done
   useEffect(() => {
-    if (searchState === 'done' && searchResult) {
+    if (isComplete && hasResult) {
       setShowDuration(true);
     }
-  }, [searchState, searchResult]);
+  }, [isComplete, hasResult]);
 
   const handleRetry = () => {
     resetSearch();
@@ -46,9 +50,9 @@ const Step9ProcessImages: React.FC = () => {
     return {
       url: imageUrl,
       filename: queryName,
-      status: searchState === 'done' ? 'done' as const :
-              searchState === 'error' ? 'error' as const : 'processing' as const,
-      progress: searchState === 'done' ? 100 : searchProgress.progress,
+      status: isComplete ? 'done' as const :
+              hasError ? 'error' as const : 'processing' as const,
+      progress: isComplete ? 100 : searchProgress.progress,
       duration: item.duration_seconds,
       timestamp: bestMatch?.timestamp,
       similarity: bestMatch?.similarity,
@@ -79,23 +83,23 @@ const Step9ProcessImages: React.FC = () => {
                 </div>
               )}
 
-              {searchState === 'searching' && (
+              {isLoading && (
                 <GlobalLoading />
               )}
 
-              {searchState === 'done' && processed.length > 0 && (
+              {isComplete && processed.length > 0 && (
                 <div className="max-w-6xl mx-auto">
                   <ImageGrid processed={processed} handleRetry={handleRetry} />
                 </div>
               )}
 
-              {searchState === 'done' && processed.length === 0 && (
+              {isComplete && processed.length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-gray-500">No processed images found</p>
                 </div>
               )}
 
-              {searchState === 'error' && (
+              {hasError && (
                 <GlobalError searchError={searchError} handleRetry={handleRetry} />
               )}
             </div>

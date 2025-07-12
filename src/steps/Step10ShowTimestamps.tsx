@@ -29,7 +29,9 @@ const Step10ShowTimestamps: React.FC<{ onResetGroup: () => void }> = ({ onResetG
     jumpToTimestamp,
     takeScreenshot,
     resetSearch,
-    uploadedImageUrls
+    uploadedImageUrls,
+    isResetting,
+    hasMatches
   } = screenshotSearch;
 
   // Use the workflow toast system
@@ -113,8 +115,8 @@ const Step10ShowTimestamps: React.FC<{ onResetGroup: () => void }> = ({ onResetG
     }
   };
 
-  const handleReset = () => {
-    resetSearch();
+  const handleReset = async () => {
+    await resetSearch();
     onResetGroup();
   };
 
@@ -125,6 +127,7 @@ const Step10ShowTimestamps: React.FC<{ onResetGroup: () => void }> = ({ onResetG
       showReset={false}
       resetTitle="Reset Screenshots"
       onResetClick={handleReset}
+      resetting={isResetting}
     >
       <div className="px-6 py-8 flex-1 flex flex-col">
         <VideoPlayerSection

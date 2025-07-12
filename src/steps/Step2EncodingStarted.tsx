@@ -16,8 +16,10 @@ const Step2EncodingStarted: React.FC<{ onResetGroup: () => void; isFirstStepInGr
     eta,
     startEncode,
     resetEncode,
+    isResetting,
+    isLoading,
+    hasError,
   } = encoding;
-  const [resetting, setResetting] = React.useState(false);
 
   const handleStartEncoding = async () => {
     await startEncode();
@@ -28,10 +30,8 @@ const Step2EncodingStarted: React.FC<{ onResetGroup: () => void; isFirstStepInGr
   };
 
   const handleReset = async () => {
-    setResetting(true);
     await resetEncode();
     onResetGroup();
-    setResetting(false);
   };
 
   return (
@@ -41,16 +41,16 @@ const Step2EncodingStarted: React.FC<{ onResetGroup: () => void; isFirstStepInGr
       showReset={isFirstStepInGroup}
       resetTitle="Reset Encoding"
       onResetClick={handleReset}
-      resetting={resetting}
+      resetting={isResetting}
     >
       <div className="flex-1 flex items-center justify-center px-6 py-8">
         {encodingState === 'initial' && (
           <EncodingInitialState onStartEncoding={handleStartEncoding} />
         )}
-        {encodingState === 'encoding' && (
+        {isLoading && (
           <EncodingInProgress progress={progress} eta={eta} />
         )}
-        {encodingState === 'error' && (
+        {hasError && (
           <EncodingErrorState encodingError={encodingError} onRetry={handleRetry} />
         )}
         {encodingState === 'done' && (

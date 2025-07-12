@@ -8,7 +8,7 @@ import { useWorkflow } from '../hooks/useWorkflow';
 
 const Step6DecodingFinished: React.FC<{ onResetGroup: () => void; isFirstStepInGroup: boolean }> = ({ onResetGroup, isFirstStepInGroup }) => {
   const { decoding } = useWorkflow();
-  const decodingResult = decoding.decodingResult;
+  const { decodingResult, isResetting, resetDecode } = decoding;
 
   // Fallbacks for null result
   const duration = decodingResult?.duration ?? 0;
@@ -18,13 +18,19 @@ const Step6DecodingFinished: React.FC<{ onResetGroup: () => void; isFirstStepInG
   const ssim = decodingResult?.ssim;
   const maxPsnr = 50;
 
+  const handleReset = async () => {
+    await resetDecode();
+    onResetGroup();
+  };
+
   return (
     <StageCard
       title="Decoding Summary"
       icon={BarChart2}
       showReset={isFirstStepInGroup}
       resetTitle="Reset Decoding"
-      onResetClick={onResetGroup}
+      onResetClick={handleReset}
+      resetting={isResetting}
     >
       <div className="px-6 py-8 flex flex-col items-center">
         <DecodingStats

@@ -14,7 +14,10 @@ const Step4DecodingStarted: React.FC<{ onResetGroup: () => void; isFirstStepInGr
     decodingError,
     decodingProgress,
     startDecode,
-    resetDecode
+    resetDecode,
+    isResetting,
+    isLoading,
+    hasError
   } = decoding;
 
   const handleStartDecoding = () => {
@@ -25,8 +28,8 @@ const Step4DecodingStarted: React.FC<{ onResetGroup: () => void; isFirstStepInGr
     startDecode();
   };
 
-  const handleReset = () => {
-    resetDecode();
+  const handleReset = async () => {
+    await resetDecode();
     onResetGroup();
   };
 
@@ -37,20 +40,19 @@ const Step4DecodingStarted: React.FC<{ onResetGroup: () => void; isFirstStepInGr
       showReset={isFirstStepInGroup}
       resetTitle="Reset Video"
       onResetClick={handleReset}
+      resetting={isResetting}
     >
       <div className="flex-1 flex items-center justify-center px-6 py-8">
         {decodingState === 'initial' && (
           <DecodingInitialState onStartDecoding={handleStartDecoding} />
         )}
-        {decodingState === 'decoding' && (
+        {isLoading && (
           <DecodingInProgress
             progress={decodingProgress.progress}
             eta={decodingProgress.eta}
-            currentFrame={decodingProgress.currentFrame}
-            totalFrames={decodingProgress.totalFrames}
           />
         )}
-        {decodingState === 'error' && (
+        {hasError && (
           <DecodingErrorState decodingError={decodingError} onRetry={handleRetry} />
         )}
         {decodingState === 'done' && (

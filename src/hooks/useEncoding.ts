@@ -1,6 +1,41 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export type EncodingState = 'initial' | 'encoding' | 'error' | 'done';
+
+// Fallback data when metadata fetch fails
+const FALLBACK_ENCODING_RESULT: EncodingResult = {
+  inputSize: 20.7,
+  outputSize: 12.44,
+  duration: 4.6,
+  psnr: 38.2,
+  compressionType: 'H.265',
+  codec: 'HEVC',
+  bitrate: 2.1,
+};
+
+// Helper function to create EncodingResult from metadata
+const createEncodingResult = (metadata: any, inputSize: number): EncodingResult => {
+  const inputSizeMB = inputSize / (1024 * 1024);
+  const bitrateMbps = metadata.bitrate_kbps / 1000;
+  
+  return {
+    inputSize: parseFloat(inputSizeMB.toFixed(2)),
+    outputSize: parseFloat(metadata?.codec_output.toFixed(2)),
+    duration: metadata.duration_s,
+    psnr: metadata.low_rank_approximation_psnr,
+    compressionType: 'Advanced Compression',
+    codec: 'Custom',
+    bitrate: bitrateMbps,
+    compressionRatio: metadata.compression_ratio,
+    method: metadata.method,
+    deviceUsed: metadata.device_used,
+    memoryUsageBytes: metadata.memory_usage_bytes,
+    videoFrames: metadata.video_frames,
+    fps: metadata.fps,
+    validSequences: metadata.valid_sequences,
+    datasetCreationTimeS: metadata.dataset_creation_time_s,
+  };
+};
 
 export interface EncodingResult {
   inputSize: number; // MB
@@ -34,7 +69,12 @@ interface UseEncodingReturn {
   progress: number | string;
   eta: string | null;
   startEncode: () => Promise<void>;
-  resetEncode: () => void;
+  resetEncode: () => Promise<void>;
+  isResetting: boolean;
+  isLoading: boolean;
+  hasError: boolean;
+  isComplete: boolean;
+  hasResult: boolean;
 }
 
 export const useEncoding = (filename: string, inputSize: number, key?: string): UseEncodingReturn => {
@@ -43,25 +83,53 @@ export const useEncoding = (filename: string, inputSize: number, key?: string): 
   const [encodingResult, setEncodingResult] = useState<EncodingResult | null>(null);
   const [progress, setProgress] = useState<number | string>(0);
   const [eta, setEta] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Helper function to reset all state
+  const resetState = useCallback(() => {
+    setEncodingError('');
+    setEncodingState('initial');
+    setEncodingResult(null);
+    setProgress(0);
+    setEta(null);
+  }, []);
+
+  // Computed boolean states
+  const isLoading = encodingState === 'encoding';
+  const hasError = encodingState === 'error';
+  const isComplete = encodingState === 'done';
+  const hasResult = !!encodingResult;
+
+  // Helper function to fetch metadata and complete encoding
+  const fetchMetadataAndComplete = useCallback(async () => {
+    try {
+      const metadataResponse = await fetch(`http://localhost:9000/metadata_encode?key=${encodeURIComponent(key || '')}`);
+      if (metadataResponse.ok) {
+        const response = await metadataResponse.json();
+        const metadata = response.result;
+        setEncodingResult(createEncodingResult(metadata, inputSize));
+      } else {
+        setEncodingResult(FALLBACK_ENCODING_RESULT);
+      }
+    } catch (error) {
+      setEncodingResult(FALLBACK_ENCODING_RESULT);
+    }
+    
+    setEncodingState('done');
+    setProgress(100);
+  }, [key, inputSize]);
 
   // Reset state when key changes
   useEffect(() => {
     if (key) {
-      setEncodingError('');
-      setEncodingState('initial');
-      setEncodingResult(null);
-      setProgress(0);
-      setEta(null);
+      resetState();
     }
-  }, [key]);
+  }, [key, resetState]);
 
   // Start encoding process
   const startEncode = useCallback(async () => {
-    setEncodingError('');
+    resetState();
     setEncodingState('encoding');
-    setEncodingResult(null);
-    setProgress(0);
-    setEta(null);
 
     try {
       const response = await fetch('http://localhost:9000/start_encode', {
@@ -85,7 +153,7 @@ export const useEncoding = (filename: string, inputSize: number, key?: string): 
       setEncodingError(e.message || 'Encoding failed');
       setEncodingState('error');
     }
-  }, [filename, key]);
+  }, [filename, key, resetState]);
 
   // Polling logic inside useEffect
   useEffect(() => {
@@ -110,71 +178,8 @@ export const useEncoding = (filename: string, inputSize: number, key?: string): 
         setEta(eta);
 
         if (end_time !== null) {
-
-          // Fetch metadata from the backend
-          try {
-            const metadataResponse = await fetch(`http://localhost:9000/metadata_encode?key=${encodeURIComponent(key)}`);
-            if (metadataResponse.ok) {
-              const response = await metadataResponse.json();
-              const metadata = response.result; // Access the result object
-              
-              // Convert bitrate from kbps to Mbps
-              const bitrateMbps = metadata.bitrate_kbps / 1000;
-              console.log({inputSize})
-                              // Convert input size from bytes to MB
-                const inputSizeMB = inputSize / (1024 * 1024);
-                console.log('File size:', { 
-                  inputSizeBytes: inputSize, 
-                  inputSizeMB: inputSizeMB,
-                  outputSize: metadata?.codec_output 
-                });
-                
-                setEncodingResult({
-                  inputSize: parseFloat(inputSizeMB.toFixed(2)),
-                  outputSize: parseFloat(metadata?.codec_output.toFixed(2)),
-                  duration: metadata.duration_s,
-                  psnr: metadata.low_rank_approximation_psnr,
-                  compressionType: 'Advanced Compression',
-                  codec: 'Custom',
-                  bitrate: bitrateMbps,
-                  compressionRatio: metadata.compression_ratio,
-                  method: metadata.method,
-                  deviceUsed: metadata.device_used,
-                  memoryUsageBytes: metadata.memory_usage_bytes,
-                  videoFrames: metadata.video_frames,
-                  fps: metadata.fps,
-                  validSequences: metadata.valid_sequences,
-                  datasetCreationTimeS: metadata.dataset_creation_time_s,
-                });
-            } else {
-              // Fallback to mock data if metadata fetch fails
-              setEncodingResult({
-                inputSize: 20.7,
-                outputSize: 12.44,
-                duration: 4.6,
-                psnr: 38.2,
-                compressionType: 'H.265',
-                codec: 'HEVC',
-                bitrate: 2.1,
-              });
-            }
           clearInterval(interval);
-
-          } catch (error) {
-            // Fallback to mock data if metadata fetch fails
-            setEncodingResult({
-              inputSize: 20.7,
-              outputSize: 12.44,
-              duration: 4.6,
-              psnr: 38.2,
-              compressionType: 'H.265',
-              codec: 'HEVC',
-              bitrate: 2.1,
-            });
-          }
-
-          setEncodingState('done');
-          setProgress(100);
+          await fetchMetadataAndComplete();
         }
       } catch (e: any) {
         clearInterval(interval);
@@ -192,10 +197,11 @@ export const useEncoding = (filename: string, inputSize: number, key?: string): 
         clearInterval(interval);
       }
     };
-  }, [encodingState, key]);
+  }, [encodingState, key, fetchMetadataAndComplete]);
 
   // Reset encoding state
   const resetEncode = useCallback(async () => {
+    setIsResetting(true);
     try {
       if (key) {
         await fetch('http://localhost:9000/reset_encode', {
@@ -207,14 +213,11 @@ export const useEncoding = (filename: string, inputSize: number, key?: string): 
     } catch (e) {
       // Optionally handle/log error, but always reset local state
     }
-    setEncodingError('');
-    setEncodingState('initial');
-    setEncodingResult(null);
-    setProgress(0);
-    setEta(null);
-  }, [key]);
+    resetState();
+    setIsResetting(false);
+  }, [key, resetState]);
 
-  return useMemo(() => ({
+  return {
     encodingState,
     encodingError,
     encodingResult,
@@ -222,5 +225,10 @@ export const useEncoding = (filename: string, inputSize: number, key?: string): 
     eta,
     startEncode,
     resetEncode,
-  }), [encodingState, encodingError, encodingResult, progress, eta, startEncode, resetEncode]);
+    isResetting,
+    isLoading,
+    hasError,
+    isComplete,
+    hasResult,
+  };
 };
