@@ -99,7 +99,8 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
         ? {
             outputSize: encoding.encodingResult.outputSize,
             inputSize: encoding.encodingResult.inputSize,
-            duration: encoding.encodingResult.duration,
+            duration: encoding.encodingResult.datasetCreationTimeS,
+            compressionRatio: encoding.encodingResult.compressionRatio,
             finished: true,
           } as StepSummary
         : null,
@@ -158,7 +159,7 @@ export const WorkflowProvider = ({ children }: { children: ReactNode }) => {
           // Processing time (1 decimal)
           const processingTime = typeof summary.duration === 'number' ? `${summary.duration.toFixed(1)}s` : '--';
           // Compression ratio as X.Xx (to match main card)
-          const ratio = summary.inputSize && summary.outputSize ? (summary.inputSize / summary.outputSize) : null;
+          const ratio = summary.compression ?? summary.outputSize ? (summary.inputSize / summary.outputSize) : null;
           const compressionRatioStr = ratio ? `${ratio.toFixed(1)}x` : '--';
           // PSNR (1 decimal, dB) - if available
           const psnr = encoding.encodingResult?.psnr !== undefined ? `${encoding.encodingResult.psnr.toFixed(1)} dB` : '--';

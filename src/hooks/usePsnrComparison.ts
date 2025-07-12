@@ -122,6 +122,49 @@ export const usePsnrComparison = (key: string, originalVideoDuration?: number): 
     return urls;
   }, [videoDataMap, key, originalVideoDuration, hlsDuration, compressionRatio]);
 
+  // EAGER LOADING: Create hidden preload elements
+  useEffect(() => {
+    const urls = getVideoUrls;
+    const preloadElements: HTMLVideoElement[] = [];
+
+    // Create hidden video elements for preloading
+    Object.entries(urls).forEach(([codec, url]) => {
+      if (url && codec !== 'ours') { // Skip HLS for now as it needs special handling
+        const video = document.createElement('video');
+        video.style.position = 'absolute';
+        video.style.left = '-9999px';
+        video.style.top = '-9999px';
+        video.style.width = '1px';
+        video.style.height = '1px';
+        video.style.opacity = '0';
+        video.muted = true;
+        video.preload = 'auto';
+        video.src = url;
+        
+        // Add event listeners to track loading progress
+        video.addEventListener('loadeddata', () => {
+          console.log(`Preload: ${codec} video loaded successfully`);
+        });
+        
+        video.addEventListener('error', (e) => {
+          console.warn(`Preload: ${codec} video failed to load:`, e);
+        });
+
+        document.body.appendChild(video);
+        preloadElements.push(video);
+      }
+    });
+
+    // Cleanup function to remove preload elements
+    return () => {
+      preloadElements.forEach(video => {
+        if (video.parentNode) {
+          video.parentNode.removeChild(video);
+        }
+      });
+    };
+  }, [getVideoUrls]);
+
   const [psnrState, setPsnrState] = useState<PsnrComparisonState>('loading');
   const [error, setError] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);

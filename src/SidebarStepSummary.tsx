@@ -1,5 +1,4 @@
 import React from 'react';
-import { Clock, Monitor, HardDrive, TrendingDown, BarChart2, Signal, Hash, Image, FileText } from 'lucide-react';
 
 interface SidebarStepSummaryProps {
   stepIndex: number;
