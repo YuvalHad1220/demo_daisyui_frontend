@@ -153,14 +153,46 @@ const Step10ShowTimestamps: React.FC<{ onResetGroup: () => void }> = ({ onResetG
           videoRef={videoRef}
         />
 
-        <ScreenshotsGrid
-          screenshots={screenshots}
-          searchState={searchState}
-          clicked={clicked}
-          hoveredScreenshot={hoveredScreenshot}
-          setHoveredScreenshot={setHoveredScreenshot}
-          handleTimestampClick={handleTimestampClick}
-        />
+        <div className="w-full max-w-6xl mx-auto relative">
+          <div className="rounded-xl p-6 max-h-[600px] overflow-y-auto border" style={{ borderColor: '#d1d5db', backgroundColor: '#fdfcfb' }}>
+            <ScreenshotsGrid
+              screenshots={screenshots}
+              searchState={searchState}
+              clicked={clicked}
+              hoveredScreenshot={hoveredScreenshot}
+              setHoveredScreenshot={setHoveredScreenshot}
+              handleTimestampClick={handleTimestampClick}
+            />
+          </div>
+          
+          {/* Tooltip rendered outside scrollable container */}
+          {hoveredScreenshot && (
+            <div className="absolute z-50 pointer-events-none" style={{
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)'
+            }}>
+              <div className="rounded-lg shadow-lg p-6" style={{ background: '#fdfcfb', borderColor: '#e8e6e3', border: '1px solid', minWidth: '320px' }}>
+                <img
+                  src={hoveredScreenshot.shot.url}
+                  alt={hoveredScreenshot.shot.filename}
+                  className="w-full h-60 object-cover rounded mb-4"
+                />
+                <div className="text-center">
+                  <p className="text-sm font-medium mb-1" style={{ color: '#111827' }}>
+                    {hoveredScreenshot.shot.filename}
+                  </p>
+                  <p className="text-xs" style={{ color: '#6b7280' }}>
+                    Timestamp: {hoveredScreenshot.shot.timestamp}
+                  </p>
+                  <p className="text-xs" style={{ color: '#6b7280' }}>
+                    Confidence: {hoveredScreenshot.shot.confidence}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
       <style>{`
         @keyframes fade-in {

@@ -34,16 +34,16 @@ const ScreenshotsGrid: React.FC<ScreenshotsGridProps> = ({
         </span>
       </div>
     ) : (
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-6 w-full">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-8 w-full">
         {screenshots.map((shot, idx) => (
           <div key={idx} className="flex flex-col items-center">
             {/* Screenshot with tooltip */}
             <div 
-              className="relative group mb-3"
+              className="relative group mb-4"
               onMouseEnter={() => setHoveredScreenshot({ shot, idx })}
               onMouseLeave={() => setHoveredScreenshot(null)}
             >
-              <div className="w-32 h-20 rounded-lg overflow-hidden border" style={{ borderColor: '#e8e6e3' }}>
+              <div className="w-48 h-30 rounded-lg overflow-hidden border" style={{ borderColor: '#e8e6e3' }}>
                 <img 
                   src={shot.url} 
                   alt={`Screenshot ${idx + 1}`} 
@@ -51,29 +51,6 @@ const ScreenshotsGrid: React.FC<ScreenshotsGridProps> = ({
                 />
               </div>
               
-              {/* Tooltip */}
-              {hoveredScreenshot && hoveredScreenshot.idx === idx && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 z-50">
-                  <div className="rounded-lg shadow-lg p-4" style={{ background: '#fdfcfb', borderColor: '#e8e6e3', border: '1px solid', minWidth: '240px' }}>
-                    <img
-                      src={shot.url}
-                      alt={shot.filename}
-                      className="w-full h-40 object-cover rounded mb-3"
-                    />
-                    <div className="text-center">
-                      <p className="text-sm font-medium mb-1" style={{ color: '#111827' }}>
-                        {shot.filename}
-                      </p>
-                      <p className="text-xs" style={{ color: '#6b7280' }}>
-                        Timestamp: {shot.timestamp}
-                      </p>
-                      <p className="text-xs" style={{ color: '#6b7280' }}>
-                        Confidence: {shot.confidence}%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
             
             {/* Timestamp Button */}

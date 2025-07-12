@@ -132,7 +132,7 @@ const UploadScreenshotsWrapper: React.FC<UploadScreenshotsWrapperProps> = ({ onR
     <StageCard
       title="Upload Screenshots"
       icon={Upload}
-      showReset={selectedFiles.length > 0 && showUploadUI}
+      showReset={selectedFiles.length > 0 && (showUploadUI || showComplete)}
       resetTitle="Reset Uploads"
       onResetClick={handleReset}
       resetting={resetting}
@@ -177,15 +177,16 @@ const UploadScreenshotsWrapper: React.FC<UploadScreenshotsWrapperProps> = ({ onR
           <UploadProgress
               progress={isUploading ? uploadProgress : 100}
               waiting={!isUploading && isSearchStarted}
+              finished={!isUploading && !isSearchStarted}
             />
             <SearchProgress
-              progress={searchProgress.progress}
               processingMethod={searchProgress.processingMethod}
               eta={searchProgress.eta}
               matchesFound={searchProgress.matchesFound}
               currentFrame={searchProgress.currentFrame}
               totalFrames={searchProgress.totalFrames}
               waiting={isUploading}
+              finished={searchState === 'done'}
             />
           </div>
         )}

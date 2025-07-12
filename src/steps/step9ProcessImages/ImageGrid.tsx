@@ -25,9 +25,9 @@ const ImageGrid: React.FC<ImageGridProps> = ({ processed, handleRetry }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4 animate-fade-in">
       {processed.map((img, idx) => (
-        <div key={idx} className="p-4 rounded-lg border max-w-sm mx-auto w-full" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
+        <div key={idx} className="p-4 rounded-lg border max-w-lg mx-auto w-full" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
           <div className="aspect-video rounded-lg overflow-hidden relative mb-3" style={{ background: '#fdfcfb' }}>
             <img
               src={img.url}
@@ -49,40 +49,50 @@ const ImageGrid: React.FC<ImageGridProps> = ({ processed, handleRetry }) => {
             )}
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
+          <div className="space-y-3">
+            {/* Filename */}
+            <div className="text-center">
               <span className="text-sm font-medium truncate" style={{ color: '#111827' }}>{img.filename}</span>
-              {img.status === 'done' && img.duration && (
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#dbeafe' }}>
-                    <Clock className="w-3 h-3" style={{ color: '#2563eb' }} />
-                  </div>
-                  <span className="text-sm font-semibold" style={{ color: '#111827' }}>
-                    {img.duration.toFixed(2)}s
-                  </span>
-                </div>
-              )}
             </div>
 
-            {/* Timestamp and Similarity */}
-            {img.status === 'done' && img.timestamp !== undefined && img.similarity !== undefined && (
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#f0fdf4' }}>
-                    <Clock className="w-3 h-3" style={{ color: '#22c55e' }} />
+            {/* Data in order: Timestamp -> Accuracy -> Search Time */}
+            {img.status === 'done' && (
+              <div className="space-y-2">
+                {/* Timestamp */}
+                {img.timestamp !== undefined && (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#f0fdf4' }}>
+                      <Clock className="w-3 h-3" style={{ color: '#22c55e' }} />
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: '#111827' }}>
+                      {formatTimestamp(img.timestamp)}
+                    </span>
                   </div>
-                  <span className="text-sm font-medium" style={{ color: '#111827' }}>
-                    {formatTimestamp(img.timestamp)}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#fef3c7' }}>
-                    <Target className="w-3 h-3" style={{ color: '#f59e0b' }} />
+                )}
+                
+                {/* Accuracy */}
+                {img.similarity !== undefined && (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#fef3c7' }}>
+                      <Target className="w-3 h-3" style={{ color: '#f59e0b' }} />
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: '#111827' }}>
+                      {(img.similarity * 100).toFixed(1)}%
+                    </span>
                   </div>
-                  <span className="text-sm font-medium" style={{ color: '#111827' }}>
-                    {(img.similarity * 100).toFixed(1)}%
-                  </span>
-                </div>
+                )}
+                
+                {/* Search Time */}
+                {img.duration && (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#dbeafe' }}>
+                      <Clock className="w-3 h-3" style={{ color: '#2563eb' }} />
+                    </div>
+                    <span className="text-sm font-medium" style={{ color: '#111827' }}>
+                      {img.duration.toFixed(2)}s
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
+import { Loader } from 'lucide-react';
+import { StageCard } from '../components/ui/StageCard';
 import { useWorkflow } from '../hooks/useWorkflow';
-import ProcessingHeader from './step9ProcessImages/ProcessingHeader';
 import ProcessingDuration from './step9ProcessImages/ProcessingDuration';
 import GlobalLoading from './step9ProcessImages/GlobalLoading';
 import ImageGrid from './step9ProcessImages/ImageGrid';
 import GlobalError from './step9ProcessImages/GlobalError';
 
-const Step9ProcessImages: React.FC = () => {
+interface Step9ProcessImagesProps {
+  onResetGroup: () => void;
+}
+
+const Step9ProcessImages: React.FC<Step9ProcessImagesProps> = ({ onResetGroup }) => {
   const [showDuration, setShowDuration] = useState(false);
 
   // Use the screenshot search hook from workflow context
@@ -35,6 +40,7 @@ const Step9ProcessImages: React.FC = () => {
     resetSearch();
     setShowDuration(false);
   };
+
 
   // Transform backend results to match our interface
   const processed = searchResult?.data?.map((item: any, idx: number) => {
@@ -75,48 +81,50 @@ const Step9ProcessImages: React.FC = () => {
   const totalDuration = searchResult?.metadata?.duration_seconds || 0;
 
   return (
-    <div className="w-full h-full p-6">
-      <div className="rounded-xl border shadow-sm overflow-hidden h-full flex flex-col" style={{ background: '#fdfcfb', borderColor: '#e8e6e3' }}>
-        {/* Header and duration always at the top */}
-        <div className="flex-shrink-0">
-          <ProcessingHeader />
-          {showDuration && searchResult && totalDuration > 0 && (
+    <StageCard
+      title="Process Images"
+      icon={Loader}
+    >
+      <div className="flex flex-col h-full">
+        {/* Duration display */}
+        {showDuration && searchResult && totalDuration > 0 && (
+          <div className="flex-shrink-0 px-6 py-2 border-b" style={{ borderColor: '#e5e7eb' }}>
             <ProcessingDuration duration={totalDuration} />
+          </div>
+        )}
+        
+        {/* Content area */}
+        <div className="flex-1 px-6 py-6">
+          {searchState === 'initial' && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Ready to process images</p>
+            </div>
+          )}
+
+          {isLoading && (
+            <GlobalLoading />
+          )}
+
+          {isComplete && processed.length > 0 && (
+            <div className="w-full max-w-6xl mx-auto">
+              <div className="rounded-xl p-6 max-h-[600px] overflow-y-auto border" style={{ borderColor: '#d1d5db', backgroundColor: '#fdfcfb' }}>
+                <ImageGrid processed={processed} handleRetry={handleRetry} />
+              </div>
+            </div>
+          )}
+
+          {isComplete && processed.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No processed images found</p>
+            </div>
+          )}
+
+          {hasError && (
+            <GlobalError searchError={searchError} handleRetry={handleRetry} />
           )}
         </div>
-        {/* Scrollable grid area */}
-        <div className="flex-1 min-h-0">
-          <div className="h-full w-full flex flex-col">
-            <div className="flex-1 overflow-y-auto px-6 pt-2 pb-8">
-              {searchState === 'initial' && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Ready to process images</p>
-                </div>
-              )}
-
-              {isLoading && (
-                <GlobalLoading />
-              )}
-
-              {isComplete && processed.length > 0 && (
-                <div className="max-w-6xl mx-auto">
-                  <ImageGrid processed={processed} handleRetry={handleRetry} />
-                </div>
-              )}
-
-              {isComplete && processed.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No processed images found</p>
-                </div>
-              )}
-
-              {hasError && (
-                <GlobalError searchError={searchError} handleRetry={handleRetry} />
-              )}
-            </div>
-          </div>
-        </div>
       </div>
+      
       <style>{`
         @keyframes fade-in {
           from { opacity: 0; transform: translateY(10px); }
@@ -126,7 +134,7 @@ const Step9ProcessImages: React.FC = () => {
           animation: fade-in 0.3s ease-out;
         }
       `}</style>
-    </div>
+    </StageCard>
   );
 };
 
