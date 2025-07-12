@@ -45,7 +45,18 @@ const Step9ProcessImages: React.FC = () => {
     const bestMatch = item.top_results?.[0];
     
     // Get the uploaded image URL from the workflow context
-    const imageUrl = uploadedImageUrls[queryName] || '';
+    let imageUrl = uploadedImageUrls[queryName] || '';
+    
+    // If not found by exact name, try to find by partial match
+    if (!imageUrl) {
+      const matchingKey = Object.keys(uploadedImageUrls).find(key => 
+        key.includes(queryName.replace(/\.[^/.]+$/, '')) || 
+        queryName.includes(key.replace(/\.[^/.]+$/, ''))
+      );
+      if (matchingKey) {
+        imageUrl = uploadedImageUrls[matchingKey];
+      }
+    }
     
     return {
       url: imageUrl,

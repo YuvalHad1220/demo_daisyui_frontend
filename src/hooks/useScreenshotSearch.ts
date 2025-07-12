@@ -134,17 +134,25 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
   const hasResult = !!searchResult;
   const hasMatches = !!(searchResult?.matches?.length);
 
-  // Reset state when key changes
+  // Reset state when key changes - but preserve uploaded images
   useEffect(() => {
     if (key) {
-      resetState();
+      // Don't reset uploaded images when key changes
+      setSearchError('');
+      setSearchState('initial');
+      setSearchResult(null);
+      setSearchProgress(DEFAULT_PROGRESS);
+      setSelectedFiles([]);
     }
-  }, [key, resetState]);
+  }, [key]);
 
   // Start vector search process
   const startSearch = useCallback(async (videoPath: string, imagesPaths: string[]) => {
-    resetState();
+    // Don't reset uploaded images when starting search
+    setSearchError('');
     setSearchState('searching');
+    setSearchResult(null);
+    setSearchProgress(DEFAULT_PROGRESS);
     setSearchProgress({
       ...DEFAULT_PROGRESS,
       eta: 'N/A',
@@ -282,9 +290,14 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
     } catch (e) {
       // Optionally handle/log error, but always reset local state
     }
-    resetState();
+    // Reset everything except uploaded images
+    setSearchError('');
+    setSearchState('initial');
+    setSearchResult(null);
+    setSearchProgress(DEFAULT_PROGRESS);
+    setSelectedFiles([]);
     setIsResetting(false);
-  }, [resetState]);
+  }, []);
 
   const takeScreenshot = useCallback(async (): Promise<string> => {
     // Simulate taking a screenshot
@@ -305,10 +318,15 @@ export const useScreenshotSearch = (key?: string): UseScreenshotSearchReturn => 
   }, []);
 
   const addUploadedImage = useCallback((filename: string, fileUrl: string) => {
-    setUploadedImageUrls(prev => ({
-      ...prev,
-      [filename]: fileUrl
-    }));
+    console.log('addUploadedImage called with:', filename, fileUrl);
+    setUploadedImageUrls(prev => {
+      const updated = {
+        ...prev,
+        [filename]: fileUrl
+      };
+      console.log('Updated uploadedImageUrls:', updated);
+      return updated;
+    });
   }, []);
 
   return {
